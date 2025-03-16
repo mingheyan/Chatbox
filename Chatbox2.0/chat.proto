@@ -1,0 +1,37 @@
+syntax = "proto3";  // 指定 Protobuf 语法版本为 proto3
+
+package chat;  // 定义包名为chat，用于避免命名冲突
+
+// MessageType 定义了所有可能的消息类型
+enum MessageType {
+  UNKNOWN = 0;      // 未知类型消息
+  CHAT_MESSAGE = 1; // 普通聊天消息
+  USER_JOIN = 2;    // 用户加入消息
+  USER_LEAVE = 3;   // 用户离开消息
+  USER_LIST = 4;    // 用户列表消息
+  USERNAME_SET = 5; // 设置用户名消息
+}
+
+// ChatMessage 定义了聊天消息的结构
+message ChatMessage {
+  string sender = 1;     // 发送者的用户名
+  string content = 2;    // 消息内容
+  MessageType type = 3;  // 消息类型
+  int64 timestamp = 4;   // 消息发送时间戳（Unix时间戳）
+}
+
+// UserListMessage 定义了用户列表消息的结构
+message UserListMessage {
+  repeated string users = 1;  // 当前在线用户列表，使用repeated表示数组
+}
+
+// WebSocketMessage 是一个包装器消息，用于统一处理所有类型的消息
+message WebSocketMessage {
+  MessageType type = 1;  // 消息类型
+  // oneof 确保payload中只能设置一个字段
+  oneof payload {
+    ChatMessage chat_message = 2;     // 聊天消息
+    UserListMessage user_list = 3;    // 用户列表消息
+    string username = 4;              // 用户名（用于设置用户名）
+  }
+}

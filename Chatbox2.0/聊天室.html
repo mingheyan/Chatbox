@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket 聊天室</title>
+    <style>
+        /* 基础样式重置 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* 页面基础样式 */
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background-color: #f0f2f5;
+        }
+
+        /* 聊天室主容器样式 */
+        .chat-container {
+            width: 900px;
+            height: 600px;
+            margin: 20px auto;
+            display: flex;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        /* 侧边栏样式 */
+        .sidebar {
+            width: 250px;
+            background: #f8f9fa;
+            padding: 20px;
+            border-right: 1px solid #dee2e6;
+            border-radius: 10px 0 0 10px;
+        }
+
+        /* 主聊天区域样式 */
+        .main-chat {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .chat-header {
+            padding-bottom: 10px;
+            border-bottom: 1px solid #dee2e6;
+            margin-bottom: 10px;
+        }
+
+        #messageArea {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .input-area {
+            display: flex;
+            gap: 10px;
+            padding: 10px 0;
+        }
+
+        #messageInput {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            outline: none;
+        }
+
+        #sendButton {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        #sendButton:hover {
+            background: #0056b3;
+        }
+
+        .message {
+            margin: 8px 0;
+            padding: 8px 12px;
+            border-radius: 15px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+
+        .received {
+            background-color: #f1f0f0;
+            align-self: flex-start;
+            margin-right: auto;
+        }
+
+        .sent {
+            background-color: #007bff;
+            color: white;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+
+        .system {
+            background-color: #ffd700;
+            color: #333;
+            text-align: center;
+            margin: 10px auto;
+            padding: 5px 15px;
+            border-radius: 15px;
+            font-size: 0.9em;
+        }
+
+        .timestamp {
+            font-size: 0.8em;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        .online-users {
+            margin-top: 20px;
+        }
+
+        .online-users h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .user-list {
+            list-style: none;
+        }
+
+        .user-list li {
+            padding: 5px 10px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+        }
+
+        .user-status {
+            width: 8px;
+            height: 8px;
+            background: #28a745;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        #usernameModal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        #usernameInput {
+            padding: 10px;
+            margin: 10px 0;
+            width: 200px;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+        }
+
+        #setUsernameButton {
+            padding: 10px 20px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- 用户名输入模态框 -->
+    <div id="usernameModal">
+        <div class="modal-content">
+            <h3>请输入你的用户名</h3>
+            <input type="text" id="usernameInput" placeholder="输入用户名...">
+            <button id="setUsernameButton">确定</button>
+        </div>
+    </div>
+
+    <!-- 聊天室主界面 -->
+    <div class="chat-container">
+        <!-- 侧边栏：显示聊天室信息和在线用户列表 -->
+        <div class="sidebar">
+            <h2>聊天室</h2>
+            <div class="online-users">
+                <h3>在线用户</h3>
+                <ul class="user-list" id="userList"></ul>
+            </div>
+        </div>
+
+        <!-- 主聊天区域 -->
+        <div class="main-chat">
+            <div class="chat-header">
+                <h2>聊天区域</h2>
+            </div>
+            <div id="messageArea"></div>
+            <div class="input-area">
+                <input type="text" id="messageInput" placeholder="输入消息...">
+                <button id="sendButton">发送</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 在<script>标签前添加protobuf库 -->
+    <script src="https://cdn.jsdelivr.net/npm/protobufjs@7.2.4/dist/protobuf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/protobufjs@7.2.4/dist/protobuf.js"></script>
+
+    <!-- Proto 定义 -->
+    <script id="proto" type="text/plain">
+    syntax = "proto3";
+
+    package chat;
+
+    // 消息类型枚举
+    enum MessageType {
+      UNKNOWN = 0;
+      CHAT_MESSAGE = 1;
+      USER_JOIN = 2;
+      USER_LEAVE = 3;
+      USER_LIST = 4;
+      USERNAME_SET = 5;
+    }
+
+    // 聊天消息
+    message ChatMessage {
+      string sender = 1;
+      string content = 2;
+      MessageType type = 3;
+      int64 timestamp = 4;
+    }
+
+    // 用户列表消息
+    message UserListMessage {
+      repeated string users = 1;
+    }
+
+    // 包装所有可能的消息类型
+    message WebSocketMessage {
+      MessageType type = 1;
+      oneof payload {
+        ChatMessage chat_message = 2;
+        UserListMessage user_list = 3;
+        string username = 4;  // 用于设置用户名
+      }
+    }
+    </script>
+
+    <!-- 修改现有的script部分 -->
+    <script>
+        // 全局变量定义
+        let username = '';
+        const ws = new WebSocket('ws://localhost:8765');
+        let root = null;
+
+        // 获取DOM元素引用
+        const messageArea = document.getElementById('messageArea');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const usernameModal = document.getElementById('usernameModal');
+        const usernameInput = document.getElementById('usernameInput');
+        const setUsernameButton = document.getElementById('setUsernameButton');
+        const userList = document.getElementById('userList');
+
+        // 创建 protobuf 消息类型
+        const Root = protobuf.Root;
+        const Type = protobuf.Type;
+        const Field = protobuf.Field;
+        const Enum = protobuf.Enum;
+
+        // 创建消息类型
+        root = new Root();
+
+        // 创建枚举类型
+        const MessageType = new Enum("MessageType", {
+            UNKNOWN: 0,
+            CHAT_MESSAGE: 1,
+            USER_JOIN: 2,
+            USER_LEAVE: 3,
+            USER_LIST: 4,
+            USERNAME_SET: 5
+        });
+        root.add(MessageType);
+
+        // 创建消息类型
+        const Common = new Type("Common")
+            .add(new Field("method", 1, "string"))
+            .add(new Field("timestamp", 2, "int64"))
+            .add(new Field("room_id", 3, "string"));
+        root.add(Common);
+
+        const User = new Type("User")
+            .add(new Field("user_id", 1, "string"))
+            .add(new Field("nickname", 2, "string"))
+            .add(new Field("avatar_url", 3, "string"))
+            .add(new Field("is_admin", 4, "bool"))
+            .add(new Field("level", 5, "string"));
+        root.add(User);
+
+        const Text = new Type("Text")
+            .add(new Field("content", 1, "string"))
+            .add(new Field("color", 2, "int32"))
+            .add(new Field("is_bold", 3, "bool"));
+        root.add(Text);
+
+        const EffectConfig = new Type("EffectConfig")
+            .add(new Field("animation", 1, "int32"))
+            .add(new Field("background", 2, "string"))
+            .add(new Field("duration", 3, "int32"));
+        root.add(EffectConfig);
+
+        const ChatMessage = new Type("ChatMessage")
+            .add(new Field("sender", 1, "string"))
+            .add(new Field("content", 2, "string"))
+            .add(new Field("type", 3, "MessageType"))
+            .add(new Field("timestamp", 4, "int64"));
+        root.add(ChatMessage);
+
+        const UserListMessage = new Type("UserListMessage")
+            .add(new Field("users", 1, "string", "repeated"));
+        root.add(UserListMessage);
+
+        const WebSocketMessage = new Type("WebSocketMessage")
+            .add(new Field("type", 1, "MessageType"))
+            .add(new Field("chat_message", 2, "ChatMessage", "optional"))
+            .add(new Field("user_list", 3, "UserListMessage", "optional"))
+            .add(new Field("username", 4, "string", "optional"));
+        root.add(WebSocketMessage);
+
+        // 用户名设置处理
+        setUsernameButton.onclick = function() {
+            username = usernameInput.value.trim();
+            if (username) {
+                usernameModal.style.display = 'none';
+                const message = WebSocketMessage.create({
+                    type: MessageType.values.USERNAME_SET,
+                    username: username
+                });
+                ws.send(WebSocketMessage.encode(message).finish());
+            }
+        };
+
+        // WebSocket连接成功事件处理
+        ws.onopen = function() {
+            appendMessage('系统', '连接成功！', 'system');
+        };
+
+        // WebSocket消息接收处理
+        ws.onmessage = function(event) {
+            const reader = new FileReader();
+            reader.onload = function() {
+                try {
+                    const buffer = new Uint8Array(reader.result);
+                    const message = WebSocketMessage.decode(buffer);
+                    
+                    switch(message.type) {
+                        case MessageType.values.USER_LIST:
+                            updateUserList(message.user_list.users);
+                            break;
+                        case MessageType.values.CHAT_MESSAGE:
+                            const chatMessage = message.chat_message;
+                            appendMessage(
+                                chatMessage.sender,
+                                chatMessage.content,
+                                chatMessage.sender === '系统' ? 'system' :
+                                chatMessage.sender === username ? 'sent' : 'received'
+                            );
+                            break;
+                    }
+                } catch (error) {
+                    console.error('Error decoding message:', error);
+                }
+            };
+            reader.readAsArrayBuffer(event.data);
+        };
+
+        // WebSocket连接断开事件处理
+        ws.onclose = function() {
+            appendMessage('系统', '连接已断开', 'system');
+        };
+
+        // 发送按钮点击事件
+        sendButton.onclick = sendMessage;
+        
+        // 输入框回车键事件
+        messageInput.onkeypress = function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        };
+
+        // 发送消息函数
+        function sendMessage() {
+            const messageText = messageInput.value.trim();
+            if (messageText) {
+                const chatMessage = ChatMessage.create({
+                    sender: username,
+                    content: messageText,
+                    type: MessageType.values.CHAT_MESSAGE,
+                    timestamp: Date.now()
+                });
+
+                const message = WebSocketMessage.create({
+                    type: MessageType.values.CHAT_MESSAGE,
+                    chat_message: chatMessage
+                });
+                
+                ws.send(WebSocketMessage.encode(message).finish());
+                messageInput.value = '';
+            }
+        }
+
+        // 添加消息到聊天区域
+        function appendMessage(sender, message, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            
+            // 添加时间戳
+            const timestamp = new Date().toLocaleTimeString();
+            messageDiv.innerHTML = `
+                <div>${sender}: ${message}</div>
+                <div class="timestamp">${timestamp}</div>
+            `;
+            
+            messageArea.appendChild(messageDiv);
+            // 滚动到最新消息
+            messageArea.scrollTop = messageArea.scrollHeight;
+        }
+
+        // 更新在线用户列表
+        function updateUserList(users) {
+            userList.innerHTML = '';
+            users.forEach(user => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <span class="user-status"></span>
+                    <span>${user}</span>
+                `;
+                userList.appendChild(li);
+            });
+        }
+    </script>
+</body>
+</html>
