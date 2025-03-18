@@ -17,4 +17,12 @@
 
 ![1742095881904](images/README/1742095881904.png)
 
+版本3.0:
+
+- 使用gzip压缩数据
+- 使用ping机制保持长链接
+- 使用ack机制保证消息联通
+
+![image-20250318224919307](C:\Users\32154\AppData\Roaming\Typora\typora-user-images\image-20250318224919307.png)
+
 公众号/CSDN：我真的不是蜘蛛
