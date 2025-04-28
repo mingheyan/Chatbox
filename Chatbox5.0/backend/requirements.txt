@@ -1,0 +1,11 @@
+Django==5.0.2
+websockets==12.0
+protobuf==4.25.1
+aioconsole==0.6.1
+gzip==0.0.1
+django-simpleui==2024.2.1
+mysqlclient==2.2.4
+django-cors-headers==4.3.1
+Pillow==10.2.0
+python-dotenv==1.0.1
+django-environ==0.11.2 

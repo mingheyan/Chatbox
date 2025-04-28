@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket 聊天室</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+    <!-- 登录/注册模态框 -->
+    <div id="usernameModal">
+        <div class="modal-content">
+            <h3>登录聊天室</h3>
+            <div class="auth-toggle">
+                <button class="active" data-mode="login">登录</button>
+                <button data-mode="register">注册</button>
+            </div>
+            <div class="input-group">
+                <input type="text" id="usernameInput" placeholder="请输入用户名...">
+            </div>
+            <div class="input-group">
+                <input type="password" id="passwordInput" placeholder="请输入密码...">
+            </div>
+            <div class="input-group secret-key">
+                <input type="text" id="secretKeyInput" placeholder="请输入密钥...">
+            </div>
+            <button id="loginButton">登录</button>
+            <div id="loginMessage" class="login-message"></div>
+        </div>
+    </div>
+
+    <!-- 聊天室主界面 -->
+    <div class="chat-container">
+        <!-- 侧边栏：显示聊天室信息和在线用户列表 -->
+        <div class="sidebar">
+            <h2>在线聊天室</h2>
+            <div class="online-users">
+                <h3>在线用户</h3>
+                <ul class="user-list" id="userList"></ul>
+            </div>
+        </div>
+
+        <!-- 主聊天区域 -->
+        <div class="main-chat">
+            <div class="chat-header">
+                <h2>聊天区域</h2>
+            </div>
+            <div id="messageArea"></div>
+            <div class="input-area">
+                <input type="text" id="messageInput" placeholder="输入消息...">
+                <button id="sendButton">发送</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 外部库 -->
+    <script src="https://cdn.jsdelivr.net/npm/protobufjs@7.2.4/dist/protobuf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
+    
+    <!-- 自定义脚本 -->
+    <script type="module">
+        import init, { encrypt, decrypt, generate_key } from '/wasm/wasm-crypto/pkg/wasm_crypto.js';
+        console.log("Loading WASM module...");
+        try {
+            await init();
+            console.log("WASM module loaded successfully");
+            console.log("generate_key function:", generate_key);
+            console.log("Test key:", generate_key());
+            
+            // 将加密函数暴露给全局作用域
+            window.wasmCrypto = {
+                encrypt,
+                decrypt,
+                generate_key
+            };
+            
+            // 导入聊天模块
+            import('../js/chat.js').catch(err => console.error('Error loading chat.js:', err));
+        } catch (error) {
+            console.error("Error initializing WASM module:", error);
+        }
+    </script>
+</body>
+</html> 

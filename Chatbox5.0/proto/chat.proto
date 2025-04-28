@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package chat;
+
+enum MessageType {
+    UNKNOWN = 0;
+    CHAT_MESSAGE = 1;
+    USER_JOIN = 2;
+    USER_LEAVE = 3;
+    USER_LIST = 4;
+    USERNAME_SET = 5;
+    PING = 6;
+    PONG = 7;
+    MESSAGE_ACK = 8;
+}
+
+message ChatMessage {
+    string sender = 1;
+    string content = 2;
+    MessageType type = 3;
+    int64 timestamp = 4;
+    string message_id = 5;
+}
+
+message UserListMessage {
+    repeated string users = 1;
+}
+
+message MessageAck {
+    string message_id = 1;
+    string sender = 2;
+    int64 timestamp = 3;
+}
+
+message WebSocketMessage {
+    MessageType type = 1;
+    oneof payload {
+        ChatMessage chat_message = 2;
+        UserListMessage user_list = 3;
+        string username = 4;
+        MessageAck ack = 5;
+    }
+    int64 timestamp = 6;
+} 

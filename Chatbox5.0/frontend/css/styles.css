@@ -1,0 +1,434 @@
+/* 基础样式重置 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+}
+
+body {
+    background: #0f172a;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+}
+
+/* 聊天室主容器样式 */
+.chat-container {
+    width: 1200px;
+    height: 800px;
+    margin: 20px;
+    display: flex;
+    background: rgba(30, 41, 59, 0.7);
+    border-radius: 24px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 侧边栏样式 */
+.sidebar {
+    width: 300px;
+    background: rgba(15, 23, 42, 0.6);
+    padding: 30px;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar h2 {
+    font-size: 24px;
+    margin-bottom: 30px;
+    color: #e2e8f0;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.online-users h3 {
+    color: #64748b;
+    font-size: 16px;
+    margin-bottom: 15px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.user-list li {
+    padding: 15px 20px;
+    margin: 8px 0;
+    background: rgba(51, 65, 85, 0.4);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.user-list li:hover {
+    background: rgba(51, 65, 85, 0.6);
+    transform: translateX(5px);
+}
+
+.user-status {
+    width: 8px;
+    height: 8px;
+    background: #10b981;
+    border-radius: 50%;
+    margin-right: 12px;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+}
+
+/* 主聊天区域样式 */
+.main-chat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: rgba(30, 41, 59, 0.3);
+}
+
+.chat-header {
+    padding: 20px 30px;
+    background: rgba(15, 23, 42, 0.6);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.chat-header h2 {
+    color: #e2e8f0;
+    font-weight: 600;
+}
+
+#messageArea {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    scroll-behavior: smooth;
+}
+
+#messageArea::-webkit-scrollbar {
+    width: 4px;
+}
+
+#messageArea::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.3);
+    border-radius: 2px;
+}
+
+.message {
+    margin: 15px 0;
+    padding: 15px 20px;
+    border-radius: 16px;
+    max-width: 75%;
+    position: relative;
+    animation: messageFadeIn 0.3s ease;
+}
+
+@keyframes messageFadeIn {
+    from { 
+        opacity: 0; 
+        transform: translateY(10px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
+}
+
+.sent {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: #fff;
+    margin-left: auto;
+    border-bottom-right-radius: 4px;
+}
+
+.received {
+    background: rgba(51, 65, 85, 0.4);
+    color: #e2e8f0;
+    margin-right: auto;
+    border-bottom-left-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.system {
+    background: rgba(249, 115, 22, 0.15);
+    color: #fb923c;
+    text-align: center;
+    margin: 20px auto;
+    padding: 10px 25px;
+    border-radius: 12px;
+    font-size: 0.9em;
+    max-width: 90%;
+    border: 1px solid rgba(249, 115, 22, 0.2);
+}
+
+.timestamp {
+    font-size: 0.75em;
+    margin-top: 5px;
+    opacity: 0.7;
+}
+
+.input-area {
+    padding: 25px;
+    background: rgba(15, 23, 42, 0.6);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    gap: 15px;
+}
+
+#messageInput {
+    flex: 1;
+    padding: 15px 25px;
+    background: rgba(51, 65, 85, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    font-size: 16px;
+    outline: none;
+    transition: all 0.3s ease;
+    color: #e2e8f0;
+}
+
+#messageInput:focus {
+    background: rgba(51, 65, 85, 0.6);
+    border-color: rgba(59, 130, 246, 0.5);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+#sendButton {
+    padding: 15px 35px;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+#sendButton:hover {
+    background: #2563eb;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(59, 130, 246, 0.3);
+}
+
+/* 登录模态框样式 */
+#usernameModal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 23, 42, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(12px);
+    z-index: 1000;
+}
+
+.modal-content {
+    background: rgba(30, 41, 59, 0.95);
+    padding: 40px;
+    border-radius: 24px;
+    text-align: center;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    width: 400px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    animation: modalFadeIn 0.5s ease;
+}
+
+@keyframes modalFadeIn {
+    from { 
+        opacity: 0; 
+        transform: translateY(20px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
+}
+
+.input-group {
+    position: relative;
+    margin: 20px 0;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 15px 25px;
+    background: rgba(51, 65, 85, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    font-size: 16px;
+    outline: none;
+    transition: all 0.3s ease;
+    color: #e2e8f0;
+}
+
+.input-group input::placeholder {
+    color: #64748b;
+}
+
+.input-group input:focus {
+    background: rgba(51, 65, 85, 0.6);
+    border-color: rgba(59, 130, 246, 0.5);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+#loginButton {
+    width: 100%;
+    padding: 15px;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    margin-top: 20px;
+    transition: all 0.3s ease;
+}
+
+#loginButton:hover {
+    background: #2563eb;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(59, 130, 246, 0.3);
+}
+
+.auth-toggle {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 30px;
+    background: rgba(51, 65, 85, 0.4);
+    padding: 5px;
+    border-radius: 12px;
+}
+
+.auth-toggle button {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    background: none;
+    color: #94a3b8;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.auth-toggle button.active {
+    background: rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+    font-weight: 600;
+}
+
+.input-group::before {
+    content: '';
+    position: absolute;
+    left: 25px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    opacity: 0.5;
+    transition: opacity 0.3s ease;
+}
+
+.input-group:first-of-type::before {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="%2394a3b8" viewBox="0 0 24 24"><path d="M12 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0 2a10 10 0 0 1 10 10H2a10 10 0 0 1 10-10z"/></svg>');
+}
+
+.input-group:not(:first-of-type):not(.secret-key)::before {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="%2394a3b8" viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 1 7 7v3h1a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h1V9a7 7 0 0 1 7-7zm0 2a5 5 0 0 0-5 5v3h10V9a5 5 0 0 0-5-5z"/></svg>');
+}
+
+.secret-key::before {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="%2394a3b8" viewBox="0 0 24 24"><path d="M7 14a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm12.88-3.12l-3.53-3.53a1 1 0 0 0-1.32-.08L9.6 11.4a1 1 0 0 0-.08 1.32l2.47 2.47-3.53 3.53a1 1 0 0 0 0 1.41l1.06 1.06a1 1 0 0 0 1.41 0l3.53-3.53 2.47 2.47a1 1 0 0 0 1.32-.08l4.13-5.43a1 1 0 0 0-.08-1.32z"/></svg>');
+}
+
+.input-group:focus-within::before {
+    opacity: 0.8;
+}
+
+.input-group input {
+    padding-left: 55px;
+}
+
+.secret-key {
+    display: none;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+}
+
+.secret-key.show {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+    animation: fadeIn 0.3s ease forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.message-sender {
+    font-size: 0.9em;
+    margin-bottom: 5px;
+    font-weight: 500;
+    opacity: 0.8;
+}
+
+.message-content {
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+.login-message {
+    margin-top: 20px;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    opacity: 0;
+    transform: translateY(-10px);
+    animation: fadeIn 0.3s ease forwards;
+}
+
+.login-message.success {
+    background: rgba(16, 185, 129, 0.1);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.login-message.error {
+    background: rgba(239, 68, 68, 0.1);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+@keyframes successAnimation {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.modal-content.success {
+    animation: successAnimation 0.5s ease;
+} 
