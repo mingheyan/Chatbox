@@ -125,6 +125,8 @@ STATIC_URL = 'static/'  # 静态文件 URL 前缀
 STATIC_ROOT = BASE_DIR / 'static'  # 收集静态文件的目录
 STATICFILES_DIRS = [
     BASE_DIR / 'staticfiles',  # 开发环境静态文件目录
+    BASE_DIR / '../frontend',  # 新增：让 Django 也能找到 frontend 目录
+
 ]
 
 # 媒体文件配置
@@ -139,44 +141,4 @@ SESSION_SAVE_EVERY_REQUEST = True  # 每次请求都保存会话
 CORS_ALLOW_ALL_ORIGINS = True  # 允许所有源访问（开发环境）
 CORS_ALLOW_CREDENTIALS = True  # 允许携带认证信息
 
-# 日志配置
-LOGGING = {
-    'version': 1,  # 日志配置版本
-    'disable_existing_loggers': False,  # 不禁用现有的日志记录器
-    'formatters': {  # 日志格式配置
-        'verbose': {  # 详细格式
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
-            'style': '{',
-        },
-    },
-    'handlers': {  # 日志处理器配置
-        'console': {  # 控制台输出
-            'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
-        },
-    },
-    'root': {  # 根日志记录器配置
-        'handlers': ['console'],
-        'level': 'INFO',  # 日志级别
-    },
-}
 
-# SimpleUI 配置
-SIMPLEUI_CONFIG = {
-    'system_keep': False,  # 关闭系统菜单
-    'menu_display': ['系统管理', '权限认证'],  # 显示的系统菜单
-    'dynamic': True,  # 开启动态菜单功能
-    'menus': [{  # 自定义菜单
-        'name': '系统管理',
-        'icon': 'fas fa-cog',
-        'models': [{
-            'name': '用户管理',
-            'icon': 'fas fa-user',
-            'url': 'auth/user/'
-        }, {
-            'name': '用户组',
-            'icon': 'fas fa-users',
-            'url': 'auth/group/'
-        }]
-    }]
-}

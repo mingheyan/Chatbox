@@ -23,6 +23,9 @@ const modalContent = document.querySelector('.modal-content');
 const userList = document.getElementById('userList');
 const authToggleButtons = document.querySelectorAll('.auth-toggle button');
 const secretKeyGroup = document.querySelector('.secret-key');
+const currentUserInfo = document.getElementById('currentUserInfo');
+const loginBtn = document.getElementById('loginBtn');
+const logoutBtn = document.getElementById('logoutBtn');
 
 // 创建 protobuf 消息类型
 const Root = protobuf.Root;
@@ -77,6 +80,7 @@ root.add(WebSocketMessage);
 
 ws.onopen = function() {
     appendMessage('系统', '连接成功！', 'system');
+    
 };
 
 ws.onmessage = function(event) {
@@ -181,11 +185,10 @@ function sendMessage() {
 }
 
 function appendMessage(sender, message, type) {
+    console.log('appendMessage:', { sender, username, type });
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${type}`;
-    
     const timestamp = new Date().toLocaleTimeString();
-    
     if (type === 'system') {
         messageDiv.innerHTML = `
             <div class="message-content">${message}</div>
@@ -198,7 +201,6 @@ function appendMessage(sender, message, type) {
             <div class="timestamp">${timestamp}</div>
         `;
     }
-    
     messageArea.appendChild(messageDiv);
     messageArea.scrollTop = messageArea.scrollHeight;
 }
@@ -264,35 +266,32 @@ loginButton.onclick = function() {
 // 将登录处理函数移到全局作用域
 function handleLogin(username, password) {
     try {
-        // 生成加密密钥
         loginKey = window.wasmCrypto.generate_key();
-        console.log('Login key:', loginKey);
-        
-        // 加密密码
-        const encryptedPassword = window.wasmCrypto.encrypt(password, loginKey);
-        console.log('Encrypted password:', encryptedPassword);
-        
-        // 解密测试
-        const decryptedPassword = window.wasmCrypto.decrypt(encryptedPassword, loginKey);
-        console.log('Decrypted password:', decryptedPassword);
-        
-        // 验证解密是否正确
-        if (decryptedPassword === password) {
-            console.log('Password encryption/decryption successful!');
-        }
-        
-        showMessage('登录成功！', 'success');
-        modalContent.classList.add('success');
-        
-        setTimeout(() => {
-            usernameModal.style.display = 'none';
-            // 发送用户名到服务器
-            const message = WebSocketMessage.create({
-                type: MessageType.values.USERNAME_SET,
-                username: username
-            });
-            sendWebSocketMessage(message);
-        }, 1000);
+        fetch('/api/login/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        })
+        .then(res => res.json())
+        .then(data => {
+            showMessage(data.msg, data.success ? 'success' : 'error');
+            if (data.success) {
+                modalContent.classList.add('success');
+                setTimeout(() => {
+                    usernameModal.style.display = 'none';
+                    updateUserUI(true, username);
+                    const message = WebSocketMessage.create({
+                        type: MessageType.values.USERNAME_SET,
+                        username: username
+                    });
+                    sendWebSocketMessage(message);
+                }, 1000);
+            }
+        })
+        .catch(error => {
+            console.error('Login error:', error);
+            showMessage('登录请求失败', 'error');
+        });
     } catch (error) {
         console.error('Encryption error:', error);
         showMessage('登录加密失败', 'error');
@@ -301,31 +300,32 @@ function handleLogin(username, password) {
 
 function handleRegister(username, password, secretKey) {
     try {
-        // 使用提供的密钥加密密码
-        const encryptedPassword = window.wasmCrypto.encrypt(password, secretKey);
-        console.log('Encrypted password:', encryptedPassword);
-        
-        // 验证加密是否成功
-        const decryptedPassword = window.wasmCrypto.decrypt(encryptedPassword, secretKey);
-        if (decryptedPassword === password) {
-            console.log('Password encryption/decryption successful!');
-            showMessage('注册成功！', 'success');
-            modalContent.classList.add('success');
-            // 保存密钥用于后续登录
-            loginKey = secretKey;
-            
-            setTimeout(() => {
-                usernameModal.style.display = 'none';
-                // 发送用户名到服务器
-                const message = WebSocketMessage.create({
-                    type: MessageType.values.USERNAME_SET,
-                    username: username
-                });
-                sendWebSocketMessage(message);
-            }, 1000);
-        } else {
-            throw new Error('Password encryption verification failed');
-        }
+        fetch('/api/register/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password, secret_key: secretKey })
+        })
+        .then(res => res.json())
+        .then(data => {
+            showMessage(data.msg, data.success ? 'success' : 'error');
+            if (data.success) {
+                modalContent.classList.add('success');
+                loginKey = secretKey;
+                setTimeout(() => {
+                    usernameModal.style.display = 'none';
+                    updateUserUI(true, username);
+                    const message = WebSocketMessage.create({
+                        type: MessageType.values.USERNAME_SET,
+                        username: username
+                    });
+                    sendWebSocketMessage(message);
+                }, 1000);
+            }
+        })
+        .catch(error => {
+            console.error('Register error:', error);
+            showMessage('注册请求失败', 'error');
+        });
     } catch (error) {
         console.error('Registration error:', error);
         showMessage('注册失败：加密错误', 'error');
@@ -335,4 +335,53 @@ function handleRegister(username, password, secretKey) {
 function showMessage(message, type) {
     loginMessage.textContent = message;
     loginMessage.className = `login-message ${type}`;
-} 
+}
+
+function updateUserUI(isLoggedIn, usernameValue) {
+    if (isLoggedIn) {
+        currentUserInfo.textContent = `当前用户：${usernameValue}`;
+        loginBtn.style.display = 'none';
+        logoutBtn.style.display = '';
+    } else {
+        currentUserInfo.textContent = '未登录';
+        loginBtn.style.display = '';
+        logoutBtn.style.display = 'none';
+    }
+}
+
+loginBtn.onclick = function() {
+    usernameModal.style.display = '';
+};
+
+logoutBtn.onclick = async function() {
+    await fetch('/api/logout/', { method: 'POST', credentials: 'include' });
+    updateUserUI(false, '');
+    usernameModal.style.display = '';
+};
+
+// 修改登录状态检测逻辑，集成UI更新
+(async () => {
+    try {
+        const res = await fetch('/api/current_user/', { credentials: 'include' });
+        const data = await res.json();
+        if (data.success) {
+            // 已登录，直接隐藏弹窗
+            usernameModal.style.display = 'none';
+            username = data.username;
+            updateUserUI(true, username);
+            // 发送用户名到服务器
+            const message = WebSocketMessage.create({
+                type: MessageType.values.USERNAME_SET,
+                username: username
+            });
+            sendWebSocketMessage(message);
+        } else {
+            // 未登录，显示弹窗
+            usernameModal.style.display = '';
+            updateUserUI(false, '');
+        }
+    } catch (e) {
+        usernameModal.style.display = '';
+        updateUserUI(false, '');
+    }
+})(); 

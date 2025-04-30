@@ -1,6 +1,7 @@
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 import ssl
 import os
+import webbrowser  # 添加webbrowser模块
 
 class CORSRequestHandler(SimpleHTTPRequestHandler):
     def end_headers(self):
@@ -19,4 +20,8 @@ if __name__ == "__main__":
     httpd = HTTPServer(('localhost', 8000), CORSRequestHandler)
     print("静态文件服务器运行在 http://localhost:8000")
     print(f"当前工作目录: {os.getcwd()}")
+    
+    # 自动打开浏览器
+    webbrowser.open('http://localhost:8000/frontend/html/index.html')
+    
     httpd.serve_forever() 

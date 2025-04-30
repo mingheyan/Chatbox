@@ -6,6 +6,7 @@ import time
 import gzip  # 添加gzip导入
 from chat_pb2 import WebSocketMessage, ChatMessage, UserListMessage, MessageType
 import uuid  # 新增：用于生成消息ID
+import aiohttp  # 添加用于异步HTTP请求的库
 
 # 使用字典存储所有连接的客户端和其用户名
 # 键为WebSocket连接对象，值为用户名
@@ -16,6 +17,42 @@ PING_INTERVAL = 30  # 发送ping的间隔秒数
 PING_TIMEOUT = 60   # 等待pong响应的超时秒数（1分钟）
 LAST_PONG = {}     # 存储最后一次pong时间
 PENDING_MESSAGES = {}  # 新增：存储待确认的消息
+
+# Django API接口地址
+API_BASE_URL = "http://localhost:8000"  # 移除末尾的/api，因为URL路由中已经包含了
+
+async def save_message_to_db(sender_id, content, message_type='user'):
+    """保存消息到数据库"""
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.post(
+                f"{API_BASE_URL}/api/send_message/",
+                json={
+                    'sender_id': sender_id,
+                    'content': content,
+                    'message_type': message_type
+                },
+                headers={
+                    'Content-Type': 'application/json'
+                }
+            ) as response:
+                if response.status == 404:
+                    print(f"API endpoint not found: {response.url}")
+                    return
+                    
+                try:
+                    result = await response.json()
+                    if result.get('success'):
+                        print(f"Message saved to database: {content}")
+                    else:
+                        print(f"Failed to save message: {result.get('message')}")
+                except Exception as e:
+                    error_text = await response.text()
+                    print(f"Error parsing response: {e}")
+                    print(f"Response status: {response.status}")
+                    print(f"Response text: {error_text}")
+        except Exception as e:
+            print(f"Error saving message to database: {e}")
 
 async def handle_connection(websocket):
     try:
@@ -41,7 +78,6 @@ async def handle_connection(websocket):
                     # 处理消息确认
                     msg_id = data.ack.message_id
                     if msg_id in PENDING_MESSAGES:
-                        print(f"Message {msg_id} acknowledged by {data.ack.sender}")
                         del PENDING_MESSAGES[msg_id]
                     continue
                     
@@ -49,11 +85,15 @@ async def handle_connection(websocket):
                     CLIENTS[websocket] = data.username
                     print(f"New user joined: {data.username}")  # 添加调试信息
                     
+                    welcome_content = f"欢迎 {data.username} 加入聊天室！"
+                    # 保存系统欢迎消息
+                    await save_message_to_db("系统", welcome_content, "system")
+                    
                     # 创建欢迎消息
                     welcome_msg = WebSocketMessage()
                     welcome_msg.type = MessageType.CHAT_MESSAGE
                     welcome_msg.chat_message.sender = "系统"
-                    welcome_msg.chat_message.content = f"欢迎 {data.username} 加入聊天室！"
+                    welcome_msg.chat_message.content = welcome_content
                     welcome_msg.chat_message.type = MessageType.USER_JOIN
                     welcome_msg.chat_message.timestamp = int(time.time())
                     
@@ -65,12 +105,19 @@ async def handle_connection(websocket):
                 elif data.type == MessageType.CHAT_MESSAGE:
                     # 生成消息ID
                     msg_id = str(uuid.uuid4())
-                    print(f"Received message from {CLIENTS[websocket]}")  # 添加调试信息
+                    sender_id = CLIENTS[websocket]
+                    content = data.chat_message.content
+                    
+                    print(f"Received message from {sender_id}: {content}")
+                    
+                    # 保存用户消息到数据库
+                    await save_message_to_db(sender_id, content, "user")
+                    
                     broadcast_msg = WebSocketMessage()
                     broadcast_msg.type = MessageType.CHAT_MESSAGE
                     broadcast_msg.chat_message.message_id = msg_id  # 添加消息ID
-                    broadcast_msg.chat_message.sender = CLIENTS[websocket]
-                    broadcast_msg.chat_message.content = data.chat_message.content
+                    broadcast_msg.chat_message.sender = sender_id
+                    broadcast_msg.chat_message.content = content
                     broadcast_msg.chat_message.type = MessageType.CHAT_MESSAGE
                     broadcast_msg.chat_message.timestamp = int(time.time())
                     
@@ -99,10 +146,14 @@ async def handle_connection(websocket):
             print(f"User disconnected: {username}")  # 添加调试信息
             del CLIENTS[websocket]
             
+            leave_content = f"{username} 离开了聊天室"
+            # 保存系统离开消息
+            await save_message_to_db("系统", leave_content, "system")
+            
             leave_msg = WebSocketMessage()
             leave_msg.type = MessageType.CHAT_MESSAGE
             leave_msg.chat_message.sender = "系统"
-            leave_msg.chat_message.content = f"{username} 离开了聊天室"
+            leave_msg.chat_message.content = leave_content
             leave_msg.chat_message.type = MessageType.USER_LEAVE
             leave_msg.chat_message.timestamp = int(time.time())
             
@@ -178,7 +229,6 @@ async def send_ping(websocket):
                 
                 compressed_ping = gzip.compress(ping_msg.SerializeToString())
                 await websocket.send(compressed_ping)
-                print(f"Sent ping to {CLIENTS.get(websocket, 'unknown')}")
                 
                 # 给客户端一些时间来响应
                 await asyncio.sleep(5)  # 等待5秒
@@ -186,9 +236,6 @@ async def send_ping(websocket):
                 # 然后再检查pong时间
                 last_pong = LAST_PONG.get(websocket, 0)
                 current_time = time.time()
-                
-                print(f"Last pong: {last_pong}, Current time: {current_time}, Diff: {current_time - last_pong}")
-                
                 if current_time - last_pong > PING_TIMEOUT:
                     print(f"Ping timeout for {CLIENTS.get(websocket, 'unknown')}")
                     await websocket.close()
