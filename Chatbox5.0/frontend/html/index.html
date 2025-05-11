@@ -34,9 +34,19 @@
         <!-- 侧边栏：显示聊天室信息和在线用户列表 -->
         <div class="sidebar">
             <div class="user-info-bar">
-                <span id="currentUserInfo">未登录</span>
-                <button id="loginBtn" style="display:none;">登录</button>
-                <button id="logoutBtn" style="display:none;">登出</button>
+                <div class="user-info-left">
+                    <span id="currentUserInfo">未登录</span>
+                    <button id="loginBtn">登录</button>
+                    <button id="logoutBtn" style="display: none;">登出</button>
+                </div>
+                <div class="user-controls">
+                    <button id="settingsBtn" title="设置">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                    </button>
+                </div>
             </div>
             <h2>在线聊天室</h2>
             <div class="online-users">
@@ -52,8 +62,78 @@
             </div>
             <div id="messageArea"></div>
             <div class="input-area">
-                <input type="text" id="messageInput" placeholder="输入消息...">
-                <button id="sendButton">发送</button>
+                <div class="image-upload-container">
+                    <div class="image-upload-area" id="pasteArea">
+                        <div class="upload-placeholder">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                <circle cx="8.5" cy="8.5" r="1.5"/>
+                                <polyline points="21 15 16 10 5 21"/>
+                            </svg>
+                            <span>点击或粘贴图片</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="message-input-group">
+                    <input type="text" id="messageInput" placeholder="输入消息...">
+                    <button id="sendButton">发送</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加设置模态框 -->
+    <div id="settingsModal">
+        <div class="settings-content">
+            <div class="settings-header">
+                <h2>设置</h2>
+                <button class="close-settings">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="24" height="24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="settings-section">
+                <h3>界面设置</h3>
+                <div class="settings-option">
+                    <span class="option-label">深色模式</span>
+                    <div class="option-control">
+                        <label class="switch">
+                            <input type="checkbox" id="darkModeToggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="settings-option">
+                    <span class="option-label">消息提醒声音</span>
+                    <div class="option-control">
+                        <label class="switch">
+                            <input type="checkbox" id="soundToggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="settings-section">
+                <h3>聊天设置</h3>
+                <div class="settings-option">
+                    <span class="option-label">显示时间戳</span>
+                    <div class="option-control">
+                        <label class="switch">
+                            <input type="checkbox" id="timestampToggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="settings-option">
+                    <span class="option-label">自动滚动到底部</span>
+                    <div class="option-control">
+                        <label class="switch">
+                            <input type="checkbox" id="autoScrollToggle" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

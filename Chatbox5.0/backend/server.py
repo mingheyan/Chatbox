@@ -43,7 +43,11 @@ async def save_message_to_db(sender_id, content, message_type='user'):
                 try:
                     result = await response.json()
                     if result.get('success'):
-                        print(f"Message saved to database: {content}")
+                        # 修改打印逻辑，对图片消息做特殊处理
+                        if content.startswith('data:image'):
+                            print(f"Image message saved to database")
+                        else:
+                            print(f"Message saved to database: {content}")
                     else:
                         print(f"Failed to save message: {result.get('message')}")
                 except Exception as e:
@@ -108,7 +112,11 @@ async def handle_connection(websocket):
                     sender_id = CLIENTS[websocket]
                     content = data.chat_message.content
                     
-                    print(f"Received message from {sender_id}: {content}")
+                    # 修改打印逻辑，对图片消息做特殊处理
+                    if content.startswith('data:image'):
+                        print(f"Received image message from {sender_id}")
+                    else:
+                        print(f"Received message from {sender_id}: {content}")
                     
                     # 保存用户消息到数据库
                     await save_message_to_db(sender_id, content, "user")

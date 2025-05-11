@@ -3,11 +3,11 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.http import JsonResponse, HttpResponseForbidden
 from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth.decorators import user_passes_test
+from django.contrib.auth.decorators import user_passes_test, login_required
 from django.views.decorators.http import require_http_methods
 import json
 import secrets
-from .models import ChatMessage
+from .models import ChatMessage, UserSettings, UserProfile
 import uuid
 from datetime import datetime, timedelta
 import time
@@ -44,6 +44,8 @@ def register(request):
         if User.objects.filter(username=username).exists():
             return JsonResponse({'success': False, 'msg': '用户名已存在'})
         user = User.objects.create_user(username=username, password=password)
+        # 创建用户资料
+        UserProfile.objects.create(user=user)
         return JsonResponse({'success': True, 'msg': '注册成功'})
     return JsonResponse({'success': False, 'msg': '仅支持POST'})
 
@@ -56,7 +58,23 @@ def login(request):
         user = authenticate(request, username=username, password=password)
         if user is not None:
             auth_login(request, user)
-            return JsonResponse({'success': True, 'msg': '登录成功'})
+            # 确保用户有设置记录
+            settings, _ = UserSettings.objects.get_or_create(user=user)
+            # 确保用户有资料记录
+            profile, _ = UserProfile.objects.get_or_create(user=user)
+            
+            # 合并设置和资料信息
+            user_settings = settings.to_dict()
+            user_settings['preserved'] = profile.preserved
+            
+            return JsonResponse({
+                'success': True,
+                'msg': '登录成功',
+                'data': {
+                    'username': user.username,
+                    'settings': user_settings
+                }
+            })
         else:
             return JsonResponse({'success': False, 'msg': '用户名或密码错误'})
     return JsonResponse({'success': False, 'msg': '仅支持POST'})
@@ -83,7 +101,7 @@ def send_message(request):
     try:
         # 打印请求信息以便调试
         print(f"Received request: Content-Type: {request.content_type}")
-        print(f"Request body: {request.body.decode()}")
+        # print(f"Request body: {request.body.decode()}")
         
         if request.content_type != 'application/json':
             return JsonResponse({
@@ -170,3 +188,73 @@ def get_messages(request):
             'success': False,
             'message': f'获取消息失败: {str(e)}'
         }, status=400)
+
+@csrf_exempt
+@login_required
+def get_user_settings(request):
+    """
+    获取用户设置
+    GET /api/settings/
+    """
+    if request.method != 'GET':
+        return JsonResponse({
+            'success': False,
+            'message': '仅支持GET请求'
+        }, status=405)
+
+    try:
+        settings, created = UserSettings.objects.get_or_create(user=request.user)
+        return JsonResponse({
+            'success': True,
+            'data': settings.to_dict()
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'获取设置失败: {str(e)}'
+        }, status=500)
+
+@csrf_exempt
+@login_required
+def update_user_settings(request):
+    """
+    更新用户设置
+    POST /api/settings/update/
+    """
+    if request.method != 'POST':
+        return JsonResponse({
+            'success': False,
+            'message': '仅支持POST请求'
+        }, status=405)
+
+    try:
+        data = json.loads(request.body)
+        settings, created = UserSettings.objects.get_or_create(user=request.user)
+        
+        # 更新设置
+        if 'dark_mode' in data:
+            settings.dark_mode = data['dark_mode']
+        if 'sound_enabled' in data:
+            settings.sound_enabled = data['sound_enabled']
+        if 'show_timestamps' in data:
+            settings.show_timestamps = data['show_timestamps']
+        if 'auto_scroll' in data:
+            settings.auto_scroll = data['auto_scroll']
+        
+        settings.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': '设置更新成功',
+            'data': settings.to_dict()
+        })
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'message': '无效的JSON数据'
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'更新设置失败: {str(e)}'
+        }, status=500)

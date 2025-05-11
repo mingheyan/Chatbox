@@ -9,4 +9,6 @@ urlpatterns = [
     path('logout/', views.logout, name='logout'),
     path('send_message/', views.send_message, name='send_message'),
     path('get_messages/', views.get_messages, name='get_messages'),
+    path('settings/', views.get_user_settings, name='get_settings'),
+    path('settings/update/', views.update_user_settings, name='update_settings'),
 ] 

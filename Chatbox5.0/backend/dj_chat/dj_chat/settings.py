@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # 项目根目录配置
 # BASE_DIR 是项目的根目录，用于构建其他路径
@@ -121,17 +122,15 @@ USE_I18N = True  # 启用国际化
 USE_TZ = True  # 使用时区
 
 # 静态文件配置
-STATIC_URL = 'static/'  # 静态文件 URL 前缀
-STATIC_ROOT = BASE_DIR / 'static'  # 收集静态文件的目录
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [
-    BASE_DIR / 'staticfiles',  # 开发环境静态文件目录
-    BASE_DIR / '../frontend',  # 新增：让 Django 也能找到 frontend 目录
-
+    os.path.join(BASE_DIR, 'myapp/static'),
 ]
 
 # 媒体文件配置
-MEDIA_URL = 'media/'  # 媒体文件 URL 前缀
-MEDIA_ROOT = BASE_DIR / 'media'  # 媒体文件存储目录
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # 会话配置
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 7  # 会话 cookie 有效期（7天）

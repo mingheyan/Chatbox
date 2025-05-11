@@ -1,6 +1,18 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 # Create your models here.
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    preserved = models.BooleanField(default=False, verbose_name='保留')
+    
+    class Meta:
+        verbose_name = '用户资料'
+        verbose_name_plural = '用户资料'
+
+    def __str__(self):
+        return f"{self.user.username}的资料"
+
 class ChatMessage(models.Model):
     MESSAGE_TYPES = (
         ('user', '用户消息'),
@@ -24,3 +36,23 @@ class ChatMessage(models.Model):
 
     def __str__(self):
         return f"{self.sender_id} - {self.created_at.strftime('%Y-%m-%d %H:%M:%S')}"
+
+class UserSettings(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='settings')
+    dark_mode = models.BooleanField(default=True)
+    sound_enabled = models.BooleanField(default=True)
+    show_timestamps = models.BooleanField(default=True)
+    auto_scroll = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'user_settings'
+
+    def to_dict(self):
+        return {
+            'dark_mode': self.dark_mode,
+            'sound_enabled': self.sound_enabled,
+            'show_timestamps': self.show_timestamps,
+            'auto_scroll': self.auto_scroll,
+        }
