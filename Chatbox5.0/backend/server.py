@@ -61,7 +61,7 @@ async def save_message_to_db(sender_id, content, message_type='user'):
 async def handle_connection(websocket):
     try:
         # 初始化最后一次pong时间为当前时间
-        LAST_PONG[websocket] = time.time()  # 添加这行
+        LAST_PONG[websocket] = time.time()
         
         # 创建ping任务
         ping_task = asyncio.create_task(send_ping(websocket))
@@ -69,7 +69,12 @@ async def handle_connection(websocket):
         async for message in websocket:
             try:
                 # 解压接收到的数据
-                decompressed_data = gzip.decompress(message)
+                try:
+                    decompressed_data = gzip.decompress(message)
+                except Exception as e:
+                    print(f"解压消息失败: {e}")
+                    continue
+                    
                 data = WebSocketMessage()
                 data.ParseFromString(decompressed_data)
                 
@@ -87,7 +92,7 @@ async def handle_connection(websocket):
                     
                 elif data.type == MessageType.USERNAME_SET:
                     CLIENTS[websocket] = data.username
-                    print(f"New user joined: {data.username}")  # 添加调试信息
+                    print(f"New user joined: {data.username}")
                     
                     welcome_content = f"欢迎 {data.username} 加入聊天室！"
                     # 保存系统欢迎消息
@@ -111,6 +116,30 @@ async def handle_connection(websocket):
                     msg_id = str(uuid.uuid4())
                     sender_id = CLIENTS[websocket]
                     content = data.chat_message.content
+                    
+                    # 检查图片大小
+                    if content.startswith('data:image'):
+                        try:
+                            # 估算Base64图片大小
+                            estimated_size = len(content) * 3 / 4  # Base64编码的数据比实际大约大1/3
+                            max_size = 1024 * 1024 * 10  # 10MB限制
+                            
+                            if estimated_size > max_size:
+                                error_msg = WebSocketMessage()
+                                error_msg.type = MessageType.CHAT_MESSAGE
+                                error_msg.chat_message.sender = "系统"
+                                error_msg.chat_message.content = f"图片大小 ({estimated_size/1024/1024:.1f}MB) 超过10MB限制，请压缩后重试"
+                                error_msg.chat_message.type = MessageType.SYSTEM_MESSAGE
+                                error_msg.chat_message.timestamp = int(time.time())
+                                
+                                compressed_error = gzip.compress(error_msg.SerializeToString())
+                                await websocket.send(compressed_error)
+                                continue
+                                
+                            print(f"接收到图片消息，大小: {estimated_size/1024/1024:.1f}MB")
+                        except Exception as e:
+                            print(f"处理图片大小时出错: {e}")
+                            continue
                     
                     # 修改打印逻辑，对图片消息做特殊处理
                     if content.startswith('data:image'):
@@ -136,22 +165,30 @@ async def handle_connection(websocket):
                         'retries': 0
                     }
                     
-                    # 压缩并广播消息
-                    compressed_broadcast = gzip.compress(broadcast_msg.SerializeToString())
-                    await broadcast(compressed_broadcast, websocket)
+                    try:
+                        # 压缩并广播消息
+                        compressed_broadcast = gzip.compress(broadcast_msg.SerializeToString())
+                        await broadcast(compressed_broadcast, websocket)
+                    except Exception as e:
+                        print(f"广播消息时出错: {e}")
+                        continue
                     
                     # 创建重试任务
                     asyncio.create_task(retry_message(msg_id, websocket))
                 
+            except websockets.exceptions.ConnectionClosed:
+                print(f"连接已关闭: {CLIENTS.get(websocket, 'unknown user')}")
+                break
             except Exception as e:
-                print(f"Error handling message: {e}")  # 添加错误处理
+                print(f"处理消息时出错: {e}")
+                continue
                 
     except websockets.exceptions.ConnectionClosed:
         print("Client connection closed unexpectedly")
     finally:
         if websocket in CLIENTS:
             username = CLIENTS[websocket]
-            print(f"User disconnected: {username}")  # 添加调试信息
+            print(f"User disconnected: {username}")
             del CLIENTS[websocket]
             
             leave_content = f"{username} 离开了聊天室"
@@ -165,10 +202,13 @@ async def handle_connection(websocket):
             leave_msg.chat_message.type = MessageType.USER_LEAVE
             leave_msg.chat_message.timestamp = int(time.time())
             
-            # 压缩离开消息
-            compressed_leave = gzip.compress(leave_msg.SerializeToString())
-            await broadcast(compressed_leave, None)
-            await update_user_list()
+            try:
+                # 压缩离开消息
+                compressed_leave = gzip.compress(leave_msg.SerializeToString())
+                await broadcast(compressed_leave, None)
+                await update_user_list()
+            except Exception as e:
+                print(f"发送离开消息时出错: {e}")
             
             # 取消ping任务
             ping_task.cancel()
@@ -291,13 +331,24 @@ async def main():
     """
     主函数：启动WebSocket服务器
     """
-    # 创建WebSocket服务器并开始监听
-    async with websockets.serve(handle_connection, "localhost", 8765):
-        print("聊天服务器已启动在 ws://localhost:8765")
-        # 创建服务器输入任务
-        input_task = asyncio.create_task(server_input())
-        # 等待服务器运行
-        await asyncio.Future()
+    # 创建WebSocket服务器并开始监听，设置更大的消息大小限制
+    server = await websockets.serve(
+        handle_connection,
+        "localhost",
+        8765,
+        max_size=1024 * 1024 * 15,  # 设置15MB的消息大小限制，给予更多缓冲空间
+        max_queue=32,  # 增加消息队列大小
+        compression=None,  # 禁用WebSocket级别的压缩，因为我们已经使用gzip
+        ping_interval=None,  # 禁用自动ping，因为我们有自己的ping机制
+        ping_timeout=None   # 禁用自动ping超时
+    )
+    
+    print("聊天服务器已启动在 ws://localhost:8765")
+    print("最大消息大小限制：15MB")
+    # 创建服务器输入任务
+    input_task = asyncio.create_task(server_input())
+    # 等待服务器运行
+    await asyncio.Future()
 
 # 程序入口点
 if __name__ == "__main__":

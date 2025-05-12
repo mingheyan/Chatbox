@@ -189,7 +189,7 @@ body.dark-mode #messageInput:focus {
 
 .message {
     margin: 15px 0;
-    padding: 15px 20px;
+    padding: 12px 16px;
     border-radius: 16px;
     max-width: 70%;
     position: relative;
@@ -213,6 +213,46 @@ body.dark-mode #messageInput:focus {
     border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+.message-content {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.message.sent .message-content {
+    flex-direction: row-reverse;
+}
+
+.message-text {
+    word-break: break-word;
+}
+
+.message-header {
+    font-size: 0.85em;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 4px;
+}
+
+.message.sent .message-header {
+    text-align: right;
+}
+
+/* Message avatar styles */
+.message .avatar {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    object-fit: cover;
+}
+
+.message.sent .avatar {
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
 .message.system {
     background: rgba(249, 115, 22, 0.15);
     color: #fb923c;
@@ -225,15 +265,15 @@ body.dark-mode #messageInput:focus {
     border: 1px solid rgba(249, 115, 22, 0.2);
 }
 
+.message.system .message-content {
+    justify-content: center;
+}
+
 .message-sender {
     font-size: 0.9em;
     margin-bottom: 5px;
     font-weight: 500;
     opacity: 0.8;
-}
-
-.message-content {
-    word-break: break-word;
 }
 
 .timestamp {
@@ -740,20 +780,22 @@ body.dark-mode .message .timestamp {
 }
 
 .settings-content {
-    background: rgba(30, 41, 59, 0.95);
-    padding: 40px;
-    border-radius: 24px;
-    width: 500px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-    animation: modalFadeIn 0.5s ease;
+    background: rgba(17, 24, 39, 0.95);
+    border-radius: 16px;
+    padding: 24px;
+    width: 100%;
+    max-width: 400px;
+    color: #e2e8f0;
+    border: 1px solid var(--border-color);
 }
 
 .settings-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .settings-header h2 {
@@ -781,25 +823,27 @@ body.dark-mode .message .timestamp {
 }
 
 .settings-section {
-    margin-bottom: 30px;
+    margin-bottom: 25px;
 }
 
 .settings-section h3 {
     color: #94a3b8;
-    font-size: 16px;
-    margin-bottom: 15px;
+    font-size: 13px;
+    margin-bottom: 12px;
     font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .settings-option {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 15px;
+    padding: 12px;
     background: rgba(51, 65, 85, 0.4);
-    border-radius: 12px;
-    margin-bottom: 10px;
-    transition: all 0.3s ease;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    transition: var(--transition);
+    border: 1px solid var(--border-color);
 }
 
 .settings-option:hover {
@@ -808,103 +852,73 @@ body.dark-mode .message .timestamp {
 
 .option-label {
     color: #e2e8f0;
-    font-size: 14px;
+    font-size: 13px;
+    min-width: 70px;
 }
 
 .option-control {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
+    flex: 1;
 }
 
-/* Switch 开关样式 */
-.switch {
-    position: relative;
-    display: inline-block;
-    width: 44px;
-    height: 24px;
-}
-
-.switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(51, 65, 85, 0.6);
-    transition: .4s;
-    border-radius: 24px;
-}
-
-.slider:before {
-    position: absolute;
-    content: "";
-    height: 18px;
-    width: 18px;
-    left: 3px;
-    bottom: 3px;
-    background-color: #e2e8f0;
-    transition: .4s;
-    border-radius: 50%;
-}
-
-input:checked + .slider {
-    background-color: #3b82f6;
-}
-
-input:checked + .slider:before {
-    transform: translateX(20px);
-}
-
-#currentUserInfo {
-    font-weight: bold;
-    color: #b3cfff;
-}
-
-#loginBtn, #logoutBtn {
-    background: #3a4a6b;
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    padding: 4px 12px;
-    cursor: pointer;
-    font-size: 14px;
-    margin-left: 4px;
-    transition: background 0.2s;
-}
-#loginBtn:hover, #logoutBtn:hover {
-    background: #4e6ef2;
-}
-
-.delete-preview {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: rgba(239, 68, 68, 0.9);
-    color: white;
-    border: none;
-    cursor: pointer;
+/* Avatar styles */
+.avatar-section {
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    transition: all 0.2s ease;
-    z-index: 2;
 }
 
-.delete-preview:hover {
-    background: rgba(239, 68, 68, 1);
-    transform: scale(1.1);
+.avatar-control {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+}
+
+.avatar-preview {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    flex-shrink: 0;
+}
+
+.avatar-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatar-upload {
+    flex: 1;
+}
+
+.upload-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(51, 65, 85, 0.6);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: var(--transition);
+    font-size: 12px;
+    color: #e2e8f0;
+    border: 1px solid var(--border-color);
+}
+
+.upload-btn:hover {
+    background: rgba(51, 65, 85, 0.8);
+    transform: translateY(-1px);
+}
+
+.upload-btn svg {
+    width: 12px;
+    height: 12px;
+    stroke: currentColor;
 }
 
 /* Toast 提示样式 */

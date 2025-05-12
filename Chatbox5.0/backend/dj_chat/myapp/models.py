@@ -1,10 +1,13 @@
 from django.db import models
 from django.contrib.auth.models import User
+import base64
 
 # Create your models here.
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     preserved = models.BooleanField(default=False, verbose_name='保留')
+    avatar_data = models.BinaryField(null=True, blank=True, verbose_name='头像数据')
+    avatar_type = models.CharField(max_length=50, null=True, blank=True, verbose_name='头像类型')
     
     class Meta:
         verbose_name = '用户资料'
@@ -12,6 +15,17 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f"{self.user.username}的资料"
+
+    def to_dict(self, request=None):
+        data = {
+            'preserved': self.preserved,
+            'avatar_url': '/static/images/default-avatar.png'  # 设置默认头像
+        }
+        if self.avatar_data:
+            # 将二进制数据转换为base64字符串
+            base64_data = base64.b64encode(self.avatar_data).decode('utf-8')
+            data['avatar_url'] = f"data:{self.avatar_type};base64,{base64_data}"
+        return data
 
 class ChatMessage(models.Model):
     MESSAGE_TYPES = (

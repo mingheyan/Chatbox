@@ -123,7 +123,7 @@ USE_TZ = True  # 使用时区
 
 # 静态文件配置
 STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'myapp/static'),
 ]
@@ -139,5 +139,8 @@ SESSION_SAVE_EVERY_REQUEST = True  # 每次请求都保存会话
 # 跨域配置
 CORS_ALLOW_ALL_ORIGINS = True  # 允许所有源访问（开发环境）
 CORS_ALLOW_CREDENTIALS = True  # 允许携带认证信息
+
+# Default primary key field type
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 

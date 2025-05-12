@@ -45,8 +45,23 @@ def register(request):
             return JsonResponse({'success': False, 'msg': '用户名已存在'})
         user = User.objects.create_user(username=username, password=password)
         # 创建用户资料
-        UserProfile.objects.create(user=user)
-        return JsonResponse({'success': True, 'msg': '注册成功'})
+        profile = UserProfile.objects.create(user=user)
+        # 创建用户设置
+        settings = UserSettings.objects.create(user=user)
+        
+        # 合并设置和资料信息
+        user_settings = settings.to_dict()
+        profile_data = profile.to_dict(request)
+        user_settings.update(profile_data)
+        
+        return JsonResponse({
+            'success': True,
+            'msg': '注册成功',
+            'data': {
+                'username': user.username,
+                'settings': user_settings
+            }
+        })
     return JsonResponse({'success': False, 'msg': '仅支持POST'})
 
 @csrf_exempt
@@ -65,7 +80,8 @@ def login(request):
             
             # 合并设置和资料信息
             user_settings = settings.to_dict()
-            user_settings['preserved'] = profile.preserved
+            profile_data = profile.to_dict(request)
+            user_settings.update(profile_data)
             
             return JsonResponse({
                 'success': True,
@@ -257,4 +273,82 @@ def update_user_settings(request):
         return JsonResponse({
             'success': False,
             'message': f'更新设置失败: {str(e)}'
+        }, status=500)
+
+@csrf_exempt
+@login_required
+def update_avatar(request):
+    """
+    更新用户头像
+    POST /api/settings/update_avatar/
+    """
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': '仅支持POST请求'})
+    
+    try:
+        if 'avatar' not in request.FILES:
+            return JsonResponse({'success': False, 'message': '未找到头像文件'})
+        
+        avatar_file = request.FILES['avatar']
+        
+        # 验证文件类型
+        if not avatar_file.content_type.startswith('image/'):
+            return JsonResponse({'success': False, 'message': '仅支持图片文件'})
+            
+        # 验证文件大小（限制为5MB）
+        if avatar_file.size > 5 * 1024 * 1024:
+            return JsonResponse({'success': False, 'message': '图片大小不能超过5MB'})
+            
+        # 获取或创建用户资料
+        profile, created = UserProfile.objects.get_or_create(user=request.user)
+        
+        # 读取图片数据
+        avatar_data = avatar_file.read()
+        
+        # 保存图片数据和类型到数据库
+        profile.avatar_data = avatar_data
+        profile.avatar_type = avatar_file.content_type
+        profile.save()
+        
+        # 使用to_dict方法获取完整的资料信息
+        profile_data = profile.to_dict(request)
+        
+        return JsonResponse({
+            'success': True,
+            'message': '头像更新成功',
+            'data': profile_data
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'更新头像失败: {str(e)}'
+        }, status=500)
+
+@csrf_exempt
+def get_user_profile(request, username):
+    """
+    获取用户资料
+    GET /api/user_profile/<username>/
+    """
+    try:
+        user = User.objects.get(username=username)
+        profile = UserProfile.objects.get(user=user)
+        
+        # 使用更新后的to_dict方法
+        profile_data = profile.to_dict(request)
+        
+        return JsonResponse({
+            'success': True,
+            'data': profile_data
+        })
+    except (User.DoesNotExist, UserProfile.DoesNotExist):
+        return JsonResponse({
+            'success': False,
+            'message': '用户不存在'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'获取用户资料失败: {str(e)}'
         }, status=500)

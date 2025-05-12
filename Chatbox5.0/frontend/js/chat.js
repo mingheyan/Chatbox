@@ -83,9 +83,41 @@ root.add(WebSocketMessage);
 
 // 图片处理相关变量
 let currentImageFile = null;
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
+const COMPRESSION_QUALITY = 0.6; // 初始压缩质量
 
 // 初始化图片上传区域
 const pasteArea = document.getElementById('pasteArea');
+pasteArea.innerHTML = `
+    <div class="upload-placeholder">
+        <i class="fas fa-image"></i>
+        <span>点击或拖放图片到此处</span>
+        <span class="upload-hint">支持JPG、PNG格式，最大10MB</span>
+    </div>
+    <div class="loading-indicator" style="display: none;">
+        <div class="spinner"></div>
+        <span>正在处理图片...</span>
+    </div>
+`;
+
+// 显示加载指示器
+function showLoading() {
+    const loading = document.createElement('div');
+    loading.className = 'loading-indicator';
+    loading.innerHTML = `
+        <div class="spinner"></div>
+        <span>正在处理图片...</span>
+    `;
+    pasteArea.appendChild(loading);
+}
+
+// 隐藏加载指示器
+function hideLoading() {
+    const loading = pasteArea.querySelector('.loading-indicator');
+    if (loading) {
+        loading.style.display = 'none';
+    }
+}
 
 // 处理粘贴事件
 document.addEventListener('paste', async (e) => {
@@ -134,31 +166,56 @@ pasteArea.addEventListener('click', () => {
 // 处理图片文件
 async function handleImageFile(file) {
     if (!file.type.startsWith('image/')) {
-        console.error('不是有效的图片文件');
         return;
     }
 
-    currentImageFile = file;
+    try {
+        // 如果图片大于限制，进行压缩
+        let processedFile = file;
+        if (file.size > MAX_IMAGE_SIZE) {
+            const compressedBlob = await compressImage(file);
+            processedFile = new File([compressedBlob], file.name, {
+                type: file.type,
+                lastModified: new Date().getTime()
+            });
+        }
+        
+        currentImageFile = processedFile;
+        
+        // 获取图片实际尺寸
+        const actualDimensions = await new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+                resolve({
+                    width: img.naturalWidth,
+                    height: img.naturalHeight
+                });
+            };
+            img.src = URL.createObjectURL(processedFile);
+        });
     
     // 创建预览
     const reader = new FileReader();
     reader.onload = (e) => {
-        const placeholder = pasteArea.querySelector('.upload-placeholder');
-        if (placeholder) {
-            placeholder.style.display = 'none';
-        }
-        
-        // 移除旧的预览
-        const oldPreview = pasteArea.querySelector('img');
-        if (oldPreview) {
-            oldPreview.remove();
-        }
-        
-        // 添加新的预览
+            // 清除旧的预览内容
+            pasteArea.innerHTML = '';
+            pasteArea.classList.add('has-image');
+            
+            // 创建预览容器
+            const previewContainer = document.createElement('div');
+            previewContainer.className = 'preview-container';
+            
+            // 添加预览图片
         const img = document.createElement('img');
         img.src = e.target.result;
         img.className = 'preview-image';
-        pasteArea.appendChild(img);
+            // 根据图片比例添加额外的类
+            if (actualDimensions.height > actualDimensions.width) {
+                img.classList.add('tall');
+            } else {
+                img.classList.add('wide');
+            }
+            previewContainer.appendChild(img);
 
         // 添加删除按钮
         const deleteBtn = document.createElement('button');
@@ -168,26 +225,73 @@ async function handleImageFile(file) {
             e.stopPropagation();
             clearImagePreview();
         };
-        pasteArea.appendChild(deleteBtn);
-    };
-    reader.readAsDataURL(file);
+            previewContainer.appendChild(deleteBtn);
+            
+            pasteArea.appendChild(previewContainer);
+        };
+        reader.readAsDataURL(processedFile);
+    } catch (error) {
+        console.error('处理图片时出错:', error);
+        clearImagePreview();
+    } finally {
+        // 清理URL对象
+        if (processedFile) {
+            URL.revokeObjectURL(processedFile);
+        }
+    }
 }
 
 // 清除图片预览
 function clearImagePreview() {
     currentImageFile = null;
-    const placeholder = pasteArea.querySelector('.upload-placeholder');
-    if (placeholder) {
-        placeholder.style.display = 'flex';
-    }
-    const preview = pasteArea.querySelector('.preview-image');
-    if (preview) {
-        preview.remove();
-    }
-    const deleteBtn = pasteArea.querySelector('.delete-preview');
-    if (deleteBtn) {
-        deleteBtn.remove();
-    }
+    pasteArea.classList.remove('has-image');
+    pasteArea.innerHTML = `
+        <div class="upload-placeholder">
+            <i class="fas fa-image"></i>
+            <span>点击或拖放图片到此处</span>
+        </div>
+    `;
+}
+
+// 压缩图片函数
+async function compressImage(file, maxSize = MAX_IMAGE_SIZE, quality = COMPRESSION_QUALITY) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (e) => {
+            const img = new Image();
+            img.src = e.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+                
+                // 如果图片尺寸太大，按比例缩小
+                const MAX_WIDTH = 2000;
+                const MAX_HEIGHT = 2000;
+                if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+                    const ratio = Math.min(MAX_WIDTH / width, MAX_HEIGHT / height);
+                    width = Math.floor(width * ratio);
+                    height = Math.floor(height * ratio);
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // 转换为Blob
+                canvas.toBlob((blob) => {
+                    // 如果压缩后仍然太大，继续降低质量压缩
+                    if (blob.size > maxSize && quality > 0.1) {
+                        compressImage(file, maxSize, quality - 0.1).then(resolve);
+                    } else {
+                        resolve(blob);
+                    }
+                }, file.type, quality);
+            };
+        };
+    });
 }
 
 // 修改发送消息函数以支持图片
@@ -681,12 +785,25 @@ logoutBtn.onclick = async function() {
             username = data.username;
             updateUserUI(true, username);
             
-            // 加载用户设置
+            // 加载用户设置和头像
             const settingsRes = await fetch('/api/settings/', { 
                 method: 'GET',
                 credentials: 'include'
             });
             const settingsData = await settingsRes.json();
+            
+            // 加载用户资料（包含头像）
+            const profileRes = await fetch(`/api/user_profile/${username}/`, {
+                method: 'GET',
+                credentials: 'include'
+            });
+            const profileData = await profileRes.json();
+            
+            if (profileData.success && profileData.data.avatar_url) {
+                if (!window.userAvatars) window.userAvatars = {};
+                window.userAvatars[username] = profileData.data.avatar_url;
+                document.getElementById('currentAvatar').src = profileData.data.avatar_url;
+            }
             
             if (settingsData.success) {
                 const settings = settingsData.data;
@@ -990,4 +1107,221 @@ document.addEventListener('DOMContentLoaded', () => {
         // 应用默认设置
         applySettings();
     }
-}); 
+});
+
+// 修改默认头像路径
+const DEFAULT_AVATAR = '/static/images/image.png';
+
+// 修改头像相关的代码
+function createMessageElement(message) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message';
+    messageDiv.setAttribute('data-username', message.sender);
+    
+    if (message.type === MessageType.values.SYSTEM_MESSAGE) {
+        messageDiv.classList.add('system');
+        messageDiv.innerHTML = `
+            <div class="message-content">
+                <div class="message-text">${message.content}</div>
+            </div>
+            <div class="timestamp">${formatTimestamp(message.timestamp)}</div>
+        `;
+    } else {
+        const isSent = message.sender === username;
+        messageDiv.classList.add(isSent ? 'sent' : 'received');
+        
+        // 获取用户头像URL
+        const avatarUrl = window.userAvatars?.[message.sender] || '/static/images/default-avatar.png';
+        
+        messageDiv.innerHTML = `
+            <div class="message-header">${message.sender}</div>
+            <div class="message-content">
+                <img class="avatar" src="${avatarUrl}" alt="${message.sender}'s avatar">
+                <div class="message-text">${message.content}</div>
+            </div>
+            <div class="timestamp">${formatTimestamp(message.timestamp)}</div>
+        `;
+    }
+    
+    return messageDiv;
+}
+
+// 修改头像上传处理代码
+document.getElementById('avatarInput').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // 验证文件类型
+    if (!file.type.startsWith('image/')) {
+        showToast('请选择图片文件');
+        return;
+    }
+
+    // 验证文件大小
+    if (file.size > 5 * 1024 * 1024) {
+        showToast('图片大小不能超过5MB');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    try {
+        const response = await fetch('/api/settings/update_avatar/', {
+            method: 'POST',
+            body: formData,
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        if (result.success) {
+            showToast('头像更新成功');
+            // 更新头像预览和全局头像缓存
+            const avatarUrl = result.data.avatar_url;
+            document.getElementById('currentAvatar').src = avatarUrl;
+            if (!window.userAvatars) window.userAvatars = {};
+            window.userAvatars[username] = avatarUrl;
+            // 更新所有消息中的头像
+            updateMessageAvatars(username, avatarUrl);
+        } else {
+            showToast(result.message || '头像更新失败');
+        }
+    } catch (error) {
+        console.error('上传头像失败:', error);
+        showToast('上传头像失败，请重试');
+    }
+});
+
+// 更新消息中的头像
+function updateMessageAvatars(username, avatarUrl) {
+    const messages = document.querySelectorAll(`.message[data-username="${username}"] .avatar`);
+    messages.forEach(avatar => {
+        avatar.src = avatarUrl;
+    });
+}
+
+// 修改登录成功后的处理
+async function handleLoginSuccess(data) {
+    username = data.username;
+    document.getElementById('currentUserInfo').textContent = username;
+    document.getElementById('loginBtn').style.display = 'none';
+    document.getElementById('logoutBtn').style.display = 'inline-block';
+    closeUsernameModal();
+    
+    // 加载用户资料（包含头像）
+    try {
+        const profileRes = await fetch(`/api/user_profile/${username}/`, {
+            method: 'GET',
+            credentials: 'include'
+        });
+        const profileData = await profileRes.json();
+        
+        if (profileData.success && profileData.data.avatar_url) {
+            if (!window.userAvatars) window.userAvatars = {};
+            window.userAvatars[username] = profileData.data.avatar_url;
+            document.getElementById('currentAvatar').src = profileData.data.avatar_url;
+        }
+    } catch (error) {
+        console.error('加载用户头像失败:', error);
+    }
+    
+    // 更新用户设置
+    if (data.settings) {
+        updateUserSettings(data.settings);
+    }
+    
+    // 连接WebSocket
+    connectWebSocket();
+}
+
+// 在文件开头添加全局头像缓存对象
+window.userAvatars = {};
+
+// 修改登录状态检测逻辑，集成UI更新和设置加载
+(async () => {
+    try {
+        const res = await fetch('/api/current_user/', { credentials: 'include' });
+        const data = await res.json();
+        if (data.success) {
+            // 已登录，直接隐藏弹窗
+            usernameModal.style.display = 'none';
+            username = data.username;
+            updateUserUI(true, username);
+            
+            // 加载用户设置和头像
+            const settingsRes = await fetch('/api/settings/', { 
+                method: 'GET',
+                credentials: 'include'
+            });
+            const settingsData = await settingsRes.json();
+            
+            // 加载用户资料（包含头像）
+            const profileRes = await fetch(`/api/user_profile/${username}/`, {
+                method: 'GET',
+                credentials: 'include'
+            });
+            const profileData = await profileRes.json();
+            
+            if (profileData.success && profileData.data.avatar_url) {
+                if (!window.userAvatars) window.userAvatars = {};
+                window.userAvatars[username] = profileData.data.avatar_url;
+                document.getElementById('currentAvatar').src = profileData.data.avatar_url;
+            }
+            
+            if (settingsData.success) {
+                const settings = settingsData.data;
+                // 更新设置开关状态
+                darkModeToggle.checked = settings.dark_mode;
+                soundToggle.checked = settings.sound_enabled;
+                timestampToggle.checked = settings.show_timestamps;
+                autoScrollToggle.checked = settings.auto_scroll;
+                
+                // 应用深色模式
+                if (settings.dark_mode) {
+                    document.body.classList.add('dark-mode');
+                } else {
+                    document.body.classList.remove('dark-mode');
+                }
+                
+                // 应用保留用户特殊样式
+                if (settings.preserved) {
+                    document.body.classList.add('preserved-user');
+                } else {
+                    document.body.classList.remove('preserved-user');
+                }
+                
+                // 更新声音设置
+                window.soundEnabled = settings.sound_enabled;
+                
+                // 更新时间戳显示
+                if (settings.show_timestamps) {
+                    document.body.classList.add('show-timestamps');
+                } else {
+                    document.body.classList.remove('show-timestamps');
+                }
+                
+                // 更新自动滚动
+                window.autoScroll = settings.auto_scroll;
+            }
+            
+            // 发送用户名到服务器
+            const message = WebSocketMessage.create({
+                type: MessageType.values.USERNAME_SET,
+                username: username
+            });
+            sendWebSocketMessage(message);
+        } else {
+            // 未登录，显示弹窗
+            usernameModal.style.display = '';
+            updateUserUI(false, '');
+        }
+    } catch (e) {
+        console.error('检查登录状态失败:', e);
+        usernameModal.style.display = '';
+        updateUserUI(false, '');
+    }
+})(); 
