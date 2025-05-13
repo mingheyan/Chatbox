@@ -12,6 +12,9 @@ let reconnectAttempts = 0;
 const maxReconnectAttempts = 5;
 const reconnectDelay = 3000; // 3秒
 
+// 添加登出状态标志
+let isLoggedOut = false;
+
 // 获取DOM元素引用
 const messageArea = document.getElementById('messageArea');
 const messageInput = document.getElementById('messageInput');
@@ -403,8 +406,20 @@ function appendMessage(sender, content, type) {
     }
 }
 
-// WebSocket连接函数
+// 修改WebSocket连接函数
 function connectWebSocket() {
+    // 如果已登出，不进行连接
+    if (isLoggedOut) {
+        console.log('用户已登出，不再重新连接');
+        return;
+    }
+
+    // 如果已经存在连接，先关闭
+    if (ws) {
+        ws.close();
+        ws = null;
+    }
+
     try {
         ws = new WebSocket('ws://localhost:8765');
 
@@ -417,7 +432,8 @@ function connectWebSocket() {
             if (username) {
                 const message = WebSocketMessage.create({
                     type: MessageType.values.USERNAME_SET,
-                    username: username
+                    username: username,
+                    is_self: true
                 });
                 sendWebSocketMessage(message);
             }
@@ -429,24 +445,32 @@ function connectWebSocket() {
 
         ws.onclose = function() {
             console.log('WebSocket连接断开');
-            appendMessage('系统', '连接已断开，正在尝试重新连接...', 'system');
-            
-            // 尝试重新连接
-            if (reconnectAttempts < maxReconnectAttempts) {
-                reconnectAttempts++;
-                setTimeout(connectWebSocket, reconnectDelay);
-            } else {
-                appendMessage('系统', '重连失败，请刷新页面重试', 'system');
+            if (!isLoggedOut) {
+                appendMessage('系统', '连接已断开，正在尝试重新连接...', 'system');
+                
+                // 尝试重新连接
+                if (reconnectAttempts < maxReconnectAttempts) {
+                    reconnectAttempts++;
+                    setTimeout(connectWebSocket, reconnectDelay);
+                } else {
+                    handleConnectionError('连接失败，请重新登录');
+                }
             }
         };
 
         ws.onerror = function(error) {
             console.error('WebSocket错误:', error);
-            appendMessage('系统', 'WebSocket连接错误', 'system');
+            if (!isLoggedOut) {
+                appendMessage('系统', 'WebSocket连接错误', 'system');
+                handleConnectionError('连接出现错误，请重新登录');
+            }
         };
     } catch (error) {
         console.error('创建WebSocket连接失败:', error);
-        appendMessage('系统', 'WebSocket连接失败', 'system');
+        if (!isLoggedOut) {
+            appendMessage('系统', 'WebSocket连接失败', 'system');
+            handleConnectionError('无法建立连接，请重新登录');
+        }
     }
 }
 
@@ -491,13 +515,28 @@ function handleWebSocketMessage(event) {
                     handlePing();
                     break;
                 case MessageType.values.USER_LIST:
+                    // 检查是否存在重复登录
+                    if (username && message.user_list.users.filter(user => user === username).length > 1) {
+                        // 添加延迟以确保消息能够显示
+                        setTimeout(() => {
+                            handleDuplicateLogin();
+                        }, 100);
+                        return;
+                    }
                     updateUserList(message.user_list.users);
                     break;
                 case MessageType.values.CHAT_MESSAGE:
                     handleChatMessage(message.chat_message);
                     break;
                 case MessageType.values.USER_JOIN:
-                    appendMessage('系统', `${message.username} 加入了聊天室`, 'system');
+                    // 检查是否是同一用户名的其他会话登录
+                    if (message.username === username && !message.is_self) {
+                        setTimeout(() => {
+                            handleDuplicateLogin();
+                        }, 100);
+                        return;
+                    }
+                    handleUserJoin(message.username);
                     break;
                 case MessageType.values.USER_LEAVE:
                     appendMessage('系统', `${message.username} 离开了聊天室`, 'system');
@@ -506,6 +545,7 @@ function handleWebSocketMessage(event) {
         } catch (error) {
             console.error('Error decoding message:', error);
             appendMessage('系统', '接收消息时发生错误', 'system');
+            handleConnectionError('连接出现错误，请重新登录');
         }
     };
     reader.readAsArrayBuffer(event.data);
@@ -559,7 +599,7 @@ function handleChatMessage(chatMessage) {
 
         // 根据消息类型添加内容
         if (isImage) {
-            messageHTML += `<div class="message-text"><img src="${chatMessage.content}" class="message-image" alt="图片消息"></div>`;
+            messageHTML += `<div class="message-text"><img src="${chatMessage.content}" class="message-image" alt="图片消息" onclick="showImagePreview(this.src)"></div>`;
         } else {
             messageHTML += `<div class="message-text">${chatMessage.content}</div>`;
         }
@@ -601,7 +641,27 @@ function sendMessageAck(messageId) {
 
 function updateUserList(users) {
     userList.innerHTML = '';
-    users.forEach(user => {
+    users.forEach(async user => {
+        // 如果用户头像未加载，加载用户头像
+        if (!window.userAvatars?.[user]) {
+            try {
+                const profileData = await $.ajax({
+                    url: `/api/user_profile/${user}/`,
+                    method: 'GET',
+                    xhrFields: {
+                        withCredentials: true
+                    }
+                });
+                
+                if (profileData.success && profileData.data.avatar_url) {
+                    if (!window.userAvatars) window.userAvatars = {};
+                    window.userAvatars[user] = profileData.data.avatar_url;
+                }
+            } catch (error) {
+                console.error(`Failed to load avatar for user ${user}:`, error);
+            }
+        }
+
         const li = document.createElement('li');
         li.innerHTML = `
             <span class="user-status"></span>
@@ -609,6 +669,31 @@ function updateUserList(users) {
         `;
         userList.appendChild(li);
     });
+}
+
+// 修改用户加入消息处理
+function handleUserJoin(username) {
+    appendMessage('系统', `${username} 加入了聊天室`, 'system');
+    
+    // 加载新加入用户的头像
+    if (!window.userAvatars?.[username]) {
+        $.ajax({
+            url: `/api/user_profile/${username}/`,
+            method: 'GET',
+            xhrFields: {
+                withCredentials: true
+            }
+        }).then(profileData => {
+            if (profileData.success && profileData.data.avatar_url) {
+                if (!window.userAvatars) window.userAvatars = {};
+                window.userAvatars[username] = profileData.data.avatar_url;
+                // 更新已存在的消息中的头像
+                updateMessageAvatars(username, profileData.data.avatar_url);
+            }
+        }).catch(error => {
+            console.error(`Failed to load avatar for user ${username}:`, error);
+        });
+    }
 }
 
 // 添加模式切换事件处理
@@ -660,6 +745,12 @@ loginButton.onclick = function() {
 // 将登录处理函数移到全局作用域
 async function handleLogin(username, password) {
     try {
+        // 如果已经有WebSocket连接，先关闭
+        if (ws) {
+            ws.close();
+            ws = null;
+        }
+
         const data = await $.ajax({
             url: '/api/login/',
             method: 'POST',
@@ -670,56 +761,84 @@ async function handleLogin(username, password) {
             data: JSON.stringify({ username, password })
         });
         
-        showMessage(data.msg, data.success ? 'success' : 'error');
-        
         if (data.success) {
+            // 检查是否已经登录
+            if (data.data && data.data.already_logged_in) {
+                showLoginModal('该账号已在其他设备登录，请重新登录');
+                return;
+            }
+            
+            // 检查当前用户状态
+            try {
+                const currentUserData = await $.ajax({
+                    url: '/api/current_user/',
+                    method: 'GET',
+                    xhrFields: {
+                        withCredentials: true
+                    }
+                });
+                
+                if (currentUserData.success) {
+                    window.username = currentUserData.username;
+                    // 重置登出状态
+                    isLoggedOut = false;
+                    // 建立WebSocket连接
+                    connectWebSocket();
+                } else {
+                    showMessage('获取用户信息失败', 'error');
+                    return;
+                }
+            } catch (error) {
+                console.error('Failed to get current user:', error);
+                showMessage('获取用户信息失败', 'error');
+                return;
+            }
+            
+            showMessage(data.msg, 'success');
             modalContent.classList.add('success');
             setTimeout(() => {
                 usernameModal.style.display = 'none';
-                updateUserUI(true, username);
-                const message = WebSocketMessage.create({
-                    type: MessageType.values.USERNAME_SET,
-                    username: username
-                });
-                sendWebSocketMessage(message);
-                
-                // 直接应用服务器返回的用户设置
-                if (data.data && data.data.settings) {
-                    const settings = data.data.settings;
-                    // 更新设置开关状态
-                    darkModeToggle.checked = settings.dark_mode;
-                    soundToggle.checked = settings.sound_enabled;
-                    timestampToggle.checked = settings.show_timestamps;
-                    autoScrollToggle.checked = settings.auto_scroll;
-                    
-                    // 应用深色模式
-                    if (settings.dark_mode) {
-                        document.body.classList.add('dark-mode');
-                    } else {
-                        document.body.classList.remove('dark-mode');
-                    }
-                    
-                    // 应用保留用户特殊样式
-                    if (settings.preserved) {
-                        document.body.classList.add('preserved-user');
-                    } else {
-                        document.body.classList.remove('preserved-user');
-                    }
-                    
-                    // 更新声音设置（使用全局变量）
-                    window.soundEnabled = settings.sound_enabled;
-                    
-                    // 更新时间戳显示
-                    if (settings.show_timestamps) {
-                        document.body.classList.add('show-timestamps');
-                    } else {
-                        document.body.classList.remove('show-timestamps');
-                    }
-                    
-                    // 更新自动滚动
-                    window.autoScroll = settings.auto_scroll;
-                }
+                updateUserUI(true, window.username);
             }, 1000);
+            
+            // 直接应用服务器返回的用户设置
+            if (data.data && data.data.settings) {
+                const settings = data.data.settings;
+                // 更新设置开关状态
+                darkModeToggle.checked = settings.dark_mode;
+                soundToggle.checked = settings.sound_enabled;
+                timestampToggle.checked = settings.show_timestamps;
+                autoScrollToggle.checked = settings.auto_scroll;
+                
+                // 应用深色模式
+                if (settings.dark_mode) {
+                    document.body.classList.add('dark-mode');
+                } else {
+                    document.body.classList.remove('dark-mode');
+                }
+                
+                // 应用保留用户特殊样式
+                if (settings.preserved) {
+                    document.body.classList.add('preserved-user');
+                } else {
+                    document.body.classList.remove('preserved-user');
+                }
+                
+                // 更新声音设置
+                window.soundEnabled = settings.sound_enabled;
+                
+                // 更新时间戳显示
+                if (settings.show_timestamps) {
+                    document.body.classList.add('show-timestamps');
+                } else {
+                    document.body.classList.remove('show-timestamps');
+                }
+                
+                // 更新自动滚动
+                window.autoScroll = settings.auto_scroll;
+            }
+        } else {
+            showMessage(data.msg, 'error');
         }
     } catch (error) {
         console.error('Login error:', error);
@@ -782,8 +901,20 @@ loginBtn.onclick = function() {
     usernameModal.style.display = '';
 };
 
-logoutBtn.onclick = async function() {
+// 修改统一的登出处理函数
+async function handleLogout(message = '') {
     try {
+        // 设置登出状态
+        isLoggedOut = true;
+
+        // 1. 关闭WebSocket连接
+        if (ws) {
+            console.log('关闭WebSocket连接');
+            ws.close();
+            ws = null;
+        }
+
+        // 2. 调用登出API
         await $.ajax({
             url: '/api/logout/',
             method: 'POST',
@@ -791,12 +922,48 @@ logoutBtn.onclick = async function() {
                 withCredentials: true
             }
         });
+
+        // 3. 清除本地存储和全局变量
+        localStorage.removeItem('sessionid');
+        window.username = '';
+        window.userAvatars = {};
+        window.soundEnabled = false;
+        window.autoScroll = true;
+        window.handlingDuplicateLogin = false;
+
+        // 4. 重置UI状态
         updateUserUI(false, '');
+        messageArea.innerHTML = '';
+        userList.innerHTML = '';
+
+        // 5. 重置设置面板
+        darkModeToggle.checked = true;
+        soundToggle.checked = true;
+        timestampToggle.checked = true;
+        autoScrollToggle.checked = true;
+
+        // 6. 显示登录窗口和消息
         usernameModal.style.display = '';
+        if (message) {
+            showMessage(message, 'error');
+            appendMessage('系统', message, 'system');
+        }
     } catch (error) {
         console.error('Logout error:', error);
     }
-};
+}
+
+// 修改登出按钮的处理函数
+logoutBtn.onclick = () => handleLogout();
+
+// 修改重复登录的处理函数
+function handleDuplicateLogin() {
+    if (window.handlingDuplicateLogin) {
+        return;
+    }
+    window.handlingDuplicateLogin = true;
+    handleLogout('该账号已在其他设备登录，请重新登录');
+}
 
 // 修改登录状态检测逻辑，集成UI更新和设置加载
 (async () => {
@@ -1244,8 +1411,11 @@ function updateMessageAvatars(username, avatarUrl) {
     });
 }
 
-// 修改登录成功后的处理
+// 修改登录成功的处理
 async function handleLoginSuccess(data) {
+    // 重置登出状态
+    isLoggedOut = false;
+    
     username = data.username;
     document.getElementById('currentUserInfo').textContent = username;
     document.getElementById('loginBtn').style.display = 'none';
@@ -1281,4 +1451,78 @@ async function handleLoginSuccess(data) {
 }
 
 // 在文件开头添加全局头像缓存对象
-window.userAvatars = {}; 
+window.userAvatars = {};
+
+// 添加显示登录窗口的函数
+function showLoginModal(message = '') {
+    // 重置登录表单
+    usernameInput.value = '';
+    passwordInput.value = '';
+    secretKeyInput.value = '';
+    
+    // 显示登录窗口
+    usernameModal.style.display = '';
+    
+    // 如果有消息，显示错误信息
+    if (message) {
+        showMessage(message, 'error');
+    }
+    
+    // 聚焦用户名输入框
+    setTimeout(() => {
+        usernameInput.focus();
+    }, 100);
+}
+
+// 添加连接错误处理函数
+function handleConnectionError(message) {
+    handleLogout(message);
+} 
+
+
+// 添加图片预览功能
+window.showImagePreview = function(src) {
+    let modal = document.getElementById('imagePreviewModal');
+    if (!modal) {
+        // 如果模态框不存在，创建一个
+        const modalHtml = `
+            <div id="imagePreviewModal" style="
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.8);
+                z-index: 1000;
+                cursor: zoom-out;
+                display: flex;
+                align-items: center;
+                justify-content: center;">
+                <img src="" style="
+                    max-width: 90%;
+                    max-height: 90vh;
+                    object-fit: contain;
+                    border-radius: 4px;
+                    box-shadow: 0 0 20px rgba(0,0,0,0.3);">
+            </div>`;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        modal = document.getElementById('imagePreviewModal');
+        
+        // 添加ESC键关闭功能
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && modal.style.display === 'flex') {
+                modal.style.display = 'none';
+            }
+        });
+    }
+    
+    const previewImage = modal.querySelector('img');
+    previewImage.src = src;
+    modal.style.display = 'flex';
+    
+    // 点击关闭预览
+    modal.onclick = function() {
+        this.style.display = 'none';
+    };
+}; 
