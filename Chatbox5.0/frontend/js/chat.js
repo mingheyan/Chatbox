@@ -362,32 +362,40 @@ async function sendMessage() {
 // 修改消息显示函数以支持图片
 function appendMessage(sender, content, type) {
     const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${type}`;
-
-    let contentHtml = '';
-    if (content.startsWith('data:image')) {
-        // 处理图片消息
-        contentHtml = `<img src="${content}" class="message-image" alt="发送的图片">`;
-    } else {
-        // 处理文本消息
-        contentHtml = `<div class="message-content">${content}</div>`;
-    }
-
-    // 添加发送者和内容
-    if (type === 'system') {
-        messageDiv.innerHTML = contentHtml;
-    } else {
+    
+    // 特殊处理连接成功消息
+    if (content === '连接成功！') {
+        messageDiv.className = 'message system time';
         messageDiv.innerHTML = `
-            <div class="message-sender">${sender}</div>
-            ${contentHtml}
+            <div class="message-content">
+                <div class="message-text">${new Date().toLocaleTimeString()}</div>
+            </div>
         `;
+    } else {
+        messageDiv.className = `message ${type}`;
+        
+        if (type === 'system') {
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    <div class="message-text">${content}</div>
+                </div>
+            `;
+        } else {
+            const avatarUrl = window.userAvatars?.[sender] || '/static/images/default-avatar.png';
+            messageDiv.innerHTML = `
+                <div class="avatar">
+                    <img src="${avatarUrl}" alt="${sender}'s avatar">
+                </div>
+                <div class="message-content">
+                    <div class="message-header">
+                        <span class="message-sender">${sender}</span>
+                        <span class="timestamp">${new Date().toLocaleTimeString()}</span>
+                    </div>
+                    <div class="message-text">${content}</div>
+                </div>
+            `;
+        }
     }
-
-    // 单独添加时间戳元素
-    const timestampDiv = document.createElement('div');
-    timestampDiv.className = 'timestamp';
-    timestampDiv.textContent = new Date().toLocaleTimeString();
-    messageDiv.appendChild(timestampDiv);
 
     messageArea.appendChild(messageDiv);
     if (window.autoScroll) {
@@ -525,35 +533,41 @@ function handleChatMessage(chatMessage) {
         // 创建消息容器
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${messageType}`;
+        messageDiv.setAttribute('data-username', chatMessage.sender);
 
-        // 添加发送者信息
-        if (chatMessage.sender !== '系统') {
-            const senderDiv = document.createElement('div');
-            senderDiv.className = 'message-sender';
-            senderDiv.textContent = chatMessage.sender;
-            messageDiv.appendChild(senderDiv);
-        }
+        // 获取用户头像URL
+        const avatarUrl = window.userAvatars?.[chatMessage.sender] || '/static/images/default-avatar.png';
+
+        // 构建消息HTML
+        let messageHTML = '';
+        
+        // 添加头像
+        messageHTML += `
+            <div class="avatar">
+                <img src="${avatarUrl}" alt="${chatMessage.sender}'s avatar">
+            </div>
+        `;
 
         // 添加消息内容
-        if (isImage) {
-            const img = document.createElement('img');
-            img.src = chatMessage.content;
-            img.className = 'message-image';
-            img.alt = '图片消息';
-            messageDiv.appendChild(img);
-        } else {
-            const contentDiv = document.createElement('div');
-            contentDiv.className = 'message-content';
-            contentDiv.textContent = chatMessage.content;
-            messageDiv.appendChild(contentDiv);
-        }
+        messageHTML += '<div class="message-content">';
+        messageHTML += `
+            <div class="message-header">
+                <span class="message-sender">${chatMessage.sender}</span>
+                <span class="timestamp">${new Date(chatMessage.timestamp || Date.now()).toLocaleTimeString()}</span>
+            </div>
+        `;
 
-        // 添加时间戳
-        const timestampDiv = document.createElement('div');
-        timestampDiv.className = 'timestamp';
-        const timestamp = new Date(chatMessage.timestamp || Date.now()).toLocaleTimeString();
-        timestampDiv.textContent = timestamp;
-        messageDiv.appendChild(timestampDiv);
+        // 根据消息类型添加内容
+        if (isImage) {
+            messageHTML += `<div class="message-text"><img src="${chatMessage.content}" class="message-image" alt="图片消息"></div>`;
+        } else {
+            messageHTML += `<div class="message-text">${chatMessage.content}</div>`;
+        }
+        
+        messageHTML += '</div>';
+
+        // 设置消息HTML
+        messageDiv.innerHTML = messageHTML;
 
         // 添加到消息区域
         messageArea.appendChild(messageDiv);
@@ -646,16 +660,16 @@ loginButton.onclick = function() {
 // 将登录处理函数移到全局作用域
 async function handleLogin(username, password) {
     try {
-        const response = await fetch('/api/login/', {
+        const data = await $.ajax({
+            url: '/api/login/',
             method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json' 
+            contentType: 'application/json',
+            xhrFields: {
+                withCredentials: true
             },
-            credentials: 'include',
-            body: JSON.stringify({ username, password })
+            data: JSON.stringify({ username, password })
         });
         
-        const data = await response.json();
         showMessage(data.msg, data.success ? 'success' : 'error');
         
         if (data.success) {
@@ -715,12 +729,12 @@ async function handleLogin(username, password) {
 
 function handleRegister(username, password, secretKey) {
     try {
-        fetch('/api/register/', {
+        $.ajax({
+            url: '/api/register/',
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password, secret_key: secretKey })
+            contentType: 'application/json',
+            data: JSON.stringify({ username, password, secret_key: secretKey })
         })
-        .then(res => res.json())
         .then(data => {
             showMessage(data.msg, data.success ? 'success' : 'error');
             if (data.success) {
@@ -769,16 +783,32 @@ loginBtn.onclick = function() {
 };
 
 logoutBtn.onclick = async function() {
-    await fetch('/api/logout/', { method: 'POST', credentials: 'include' });
-    updateUserUI(false, '');
-    usernameModal.style.display = '';
+    try {
+        await $.ajax({
+            url: '/api/logout/',
+            method: 'POST',
+            xhrFields: {
+                withCredentials: true
+            }
+        });
+        updateUserUI(false, '');
+        usernameModal.style.display = '';
+    } catch (error) {
+        console.error('Logout error:', error);
+    }
 };
 
 // 修改登录状态检测逻辑，集成UI更新和设置加载
 (async () => {
     try {
-        const res = await fetch('/api/current_user/', { credentials: 'include' });
-        const data = await res.json();
+        const data = await $.ajax({
+            url: '/api/current_user/',
+            method: 'GET',
+            xhrFields: {
+                withCredentials: true
+            }
+        });
+        
         if (data.success) {
             // 已登录，直接隐藏弹窗
             usernameModal.style.display = 'none';
@@ -786,18 +816,22 @@ logoutBtn.onclick = async function() {
             updateUserUI(true, username);
             
             // 加载用户设置和头像
-            const settingsRes = await fetch('/api/settings/', { 
+            const settingsData = await $.ajax({
+                url: '/api/settings/',
                 method: 'GET',
-                credentials: 'include'
+                xhrFields: {
+                    withCredentials: true
+                }
             });
-            const settingsData = await settingsRes.json();
             
             // 加载用户资料（包含头像）
-            const profileRes = await fetch(`/api/user_profile/${username}/`, {
+            const profileData = await $.ajax({
+                url: `/api/user_profile/${username}/`,
                 method: 'GET',
-                credentials: 'include'
+                xhrFields: {
+                    withCredentials: true
+                }
             });
-            const profileData = await profileRes.json();
             
             if (profileData.success && profileData.data.avatar_url) {
                 if (!window.userAvatars) window.userAvatars = {};
@@ -871,11 +905,13 @@ const autoScrollToggle = document.getElementById('autoScrollToggle');
 // 加载保存的设置
 async function loadSettings() {
     try {
-        const response = await fetch('/api/settings/', {
+        const data = await $.ajax({
+            url: '/api/settings/',
             method: 'GET',
-            credentials: 'include'
+            xhrFields: {
+                withCredentials: true
+            }
         });
-        const data = await response.json();
         
         if (data.success) {
             const settings = data.data;
@@ -902,7 +938,7 @@ async function loadSettings() {
     }
 }
 
-// 修改保存设置函数，使其在保存后立即应用
+// 修改保存设置函数
 async function saveSettings() {
     try {
         const settings = {
@@ -912,16 +948,16 @@ async function saveSettings() {
             auto_scroll: autoScrollToggle.checked
         };
 
-        const response = await fetch('/api/settings/update/', {
+        const data = await $.ajax({
+            url: '/api/settings/update/',
             method: 'POST',
-            credentials: 'include',
-            headers: {
-                'Content-Type': 'application/json'
+            contentType: 'application/json',
+            xhrFields: {
+                withCredentials: true
             },
-            body: JSON.stringify(settings)
+            data: JSON.stringify(settings)
         });
 
-        const data = await response.json();
         if (data.success) {
             // 更新全局声音设置
             window.soundEnabled = settings.sound_enabled;
@@ -1134,12 +1170,16 @@ function createMessageElement(message) {
         const avatarUrl = window.userAvatars?.[message.sender] || '/static/images/default-avatar.png';
         
         messageDiv.innerHTML = `
-            <div class="message-header">${message.sender}</div>
+            <div class="avatar">
+                <img src="${avatarUrl}" alt="${message.sender}'s avatar">
+            </div>
             <div class="message-content">
-                <img class="avatar" src="${avatarUrl}" alt="${message.sender}'s avatar">
+                <div class="message-header">
+                    <span class="message-sender">${message.sender}</span>
+                    <span class="timestamp">${formatTimestamp(message.timestamp)}</span>
+                </div>
                 <div class="message-text">${message.content}</div>
             </div>
-            <div class="timestamp">${formatTimestamp(message.timestamp)}</div>
         `;
     }
     
@@ -1167,17 +1207,17 @@ document.getElementById('avatarInput').addEventListener('change', async (e) => {
     formData.append('avatar', file);
 
     try {
-        const response = await fetch('/api/settings/update_avatar/', {
+        const result = await $.ajax({
+            url: '/api/settings/update_avatar/',
             method: 'POST',
-            body: formData,
-            credentials: 'include'
+            data: formData,
+            processData: false,
+            contentType: false,
+            xhrFields: {
+                withCredentials: true
+            }
         });
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
         if (result.success) {
             showToast('头像更新成功');
             // 更新头像预览和全局头像缓存
@@ -1214,11 +1254,13 @@ async function handleLoginSuccess(data) {
     
     // 加载用户资料（包含头像）
     try {
-        const profileRes = await fetch(`/api/user_profile/${username}/`, {
+        const profileData = await $.ajax({
+            url: `/api/user_profile/${username}/`,
             method: 'GET',
-            credentials: 'include'
+            xhrFields: {
+                withCredentials: true
+            }
         });
-        const profileData = await profileRes.json();
         
         if (profileData.success && profileData.data.avatar_url) {
             if (!window.userAvatars) window.userAvatars = {};
