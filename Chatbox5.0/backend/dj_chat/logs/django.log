@@ -1,0 +1,184 @@
+INFO 2025-05-13 19:36:02,991 autoreload 26904 19600 Watching for file changes with StatReloader
+INFO 2025-05-13 19:36:17,603 autoreload 26904 19600 C:\Users\32154\Desktop\Chatbox\Chatbox\Chatbox5.0\backend\dj_chat\dj_chat\settings.py changed, reloading.
+INFO 2025-05-13 19:36:18,451 autoreload 28224 13804 Watching for file changes with StatReloader
+INFO 2025-05-13 19:36:28,906 basehttp 28224 11356 "POST /api/send_message/ HTTP/1.1" 200 164
+INFO 2025-05-13 19:37:42,526 autoreload 28224 13804 C:\Users\32154\Desktop\Chatbox\Chatbox\Chatbox5.0\backend\dj_chat\myapp\views.py changed, reloading.
+INFO 2025-05-13 19:37:43,305 autoreload 31260 29784 Watching for file changes with StatReloader
+INFO 2025-05-13 19:38:23,679 autoreload 31260 29784 C:\Users\32154\Desktop\Chatbox\Chatbox\Chatbox5.0\backend\dj_chat\myapp\views.py changed, reloading.
+INFO 2025-05-13 19:38:24,470 autoreload 24124 1068 Watching for file changes with StatReloader
+INFO 2025-05-13 19:38:56,398 autoreload 24124 1068 C:\Users\32154\Desktop\Chatbox\Chatbox\Chatbox5.0\backend\dj_chat\myapp\views.py changed, reloading.
+INFO 2025-05-13 19:38:57,443 autoreload 9092 3496 Watching for file changes with StatReloader
+INFO 2025-05-13 19:39:02,149 basehttp 9092 26256 "GET /frontend/html/index.html HTTP/1.1" 304 0
+INFO 2025-05-13 19:39:02,418 views 9092 20076 收到发送消息请求: Content-Type=application/json
+INFO 2025-05-13 19:39:02,430 basehttp 9092 26256 "GET /api/current_user/ HTTP/1.1" 200 37
+INFO 2025-05-13 19:39:02,434 views 9092 20076 消息发送成功: sender_id=系统, message_id=cd1147ba-c205-4756-8d8a-40f042708aed
+INFO 2025-05-13 19:39:02,436 basehttp 9092 20076 "POST /api/send_message/ HTTP/1.1" 200 164
+INFO 2025-05-13 19:39:02,453 views 9092 26256 获取用户设置成功: username=root
+INFO 2025-05-13 19:39:02,461 basehttp 9092 30148 "GET /api/current_user/ HTTP/1.1" 200 37
+INFO 2025-05-13 19:39:02,468 basehttp 9092 26256 "GET /api/settings/ HTTP/1.1" 200 1572116
+INFO 2025-05-13 19:39:02,485 views 9092 30148 获取用户设置成功: username=root
+INFO 2025-05-13 19:39:02,504 views 9092 26256 获取用户资料成功: target_username=root
+INFO 2025-05-13 19:39:02,512 basehttp 9092 30148 "GET /api/settings/ HTTP/1.1" 200 1572116
+INFO 2025-05-13 19:39:02,522 basehttp 9092 26256 "GET /api/user_profile/root/ HTTP/1.1" 200 1572027
+INFO 2025-05-13 19:39:02,548 views 9092 26256 获取用户资料成功: target_username=root
+INFO 2025-05-13 19:39:02,564 basehttp 9092 26256 "GET /api/user_profile/root/ HTTP/1.1" 200 1572027
+INFO 2025-05-13 19:39:02,806 views 9092 25580 收到发送消息请求: Content-Type=application/json
+INFO 2025-05-13 19:39:02,820 views 9092 25580 消息发送成功: sender_id=系统, message_id=ce3b9e4c-7b7f-403d-a37c-9308e7f805ec
+INFO 2025-05-13 19:39:02,822 basehttp 9092 25580 "POST /api/send_message/ HTTP/1.1" 200 164
+INFO 2025-05-13 19:39:03,087 views 9092 29556 收到发送消息请求: Content-Type=application/json
+INFO 2025-05-13 19:39:03,105 views 9092 29556 消息发送成功: sender_id=系统, message_id=8c55946f-ef94-4d33-b4ad-142712dfee37
+INFO 2025-05-13 19:39:03,106 basehttp 9092 29556 "POST /api/send_message/ HTTP/1.1" 200 164
+INFO 2025-05-13 19:39:04,478 views 9092 8900 收到发送消息请求: Content-Type=application/json
+INFO 2025-05-13 19:39:04,496 views 9092 8900 消息发送成功: sender_id=root, message_id=8eaf4da1-3ad2-420f-90b4-7293b42f23cf
+INFO 2025-05-13 19:39:04,497 basehttp 9092 8900 "POST /api/send_message/ HTTP/1.1" 200 164
+INFO 2025-05-13 19:39:17,505 views 9092 14368 收到发送消息请求: Content-Type=application/json
+INFO 2025-05-13 19:39:17,521 views 9092 14368 消息发送成功: sender_id=root, message_id=14616da1-684e-4c4d-8185-fb952952acd0
+INFO 2025-05-13 19:39:17,523 basehttp 9092 14368 "POST /api/send_message/ HTTP/1.1" 200 164
+INFO 2025-05-13 19:40:58,255 autoreload 9092 3496 C:\Users\32154\Desktop\Chatbox\Chatbox\Chatbox5.0\backend\dj_chat\myapp\views.py changed, reloading.
+INFO 2025-05-13 19:40:59,067 autoreload 14676 26476 Watching for file changes with StatReloader
+INFO 2025-05-13 19:41:04,860 views 14676 30788 消息发送成功: sender_id=root, message_id=ce25c9f5-6b64-4477-8108-d94ba562a37c
+INFO 2025-05-13 19:41:04,862 basehttp 14676 30788 "POST /api/send_message/ HTTP/1.1" 200 164
+INFO 2025-05-13 19:41:15,268 autoreload 14676 26476 C:\Users\32154\Desktop\Chatbox\Chatbox\Chatbox5.0\backend\dj_chat\myapp\views.py changed, reloading.
+INFO 2025-05-13 19:41:16,063 autoreload 8348 27700 Watching for file changes with StatReloader
+INFO 2025-05-13 19:44:45,145 autoreload 8348 27700 C:\Users\32154\Desktop\Chatbox\Chatbox\Chatbox5.0\backend\dj_chat\myapp\views.py changed, reloading.
+INFO 2025-05-13 19:44:46,166 autoreload 3548 4284 Watching for file changes with StatReloader
+INFO 2025-05-13 19:47:40,860 autoreload 3548 4284 C:\Users\32154\Desktop\Chatbox\Chatbox\Chatbox5.0\backend\dj_chat\myapp\models.py changed, reloading.
+INFO 2025-05-13 19:47:41,716 autoreload 30088 3656 Watching for file changes with StatReloader
+INFO 2025-05-13 19:47:44,603 autoreload 30088 3656 C:\Users\32154\Desktop\Chatbox\Chatbox\Chatbox5.0\backend\dj_chat\myapp\models.py changed, reloading.
+INFO 2025-05-13 19:47:45,402 autoreload 8348 24476 Watching for file changes with StatReloader
+INFO 2025-05-13 19:48:23,067 basehttp 8348 25300 "GET /admin/ HTTP/1.1" 200 18825
+INFO 2025-05-13 19:48:23,343 basehttp 8348 25300 "GET /admin/auth/group/ HTTP/1.1" 200 29200
+INFO 2025-05-13 19:48:23,410 basehttp 8348 25300 "GET /admin/jsi18n/ HTTP/1.1" 200 9327
+INFO 2025-05-13 19:48:24,297 basehttp 8348 25300 "GET /admin/auth/user/ HTTP/1.1" 200 39013
+INFO 2025-05-13 19:48:24,328 basehttp 8348 25300 "GET /admin/jsi18n/ HTTP/1.1" 200 9327
+INFO 2025-05-13 19:48:28,367 basehttp 8348 25300 "GET /admin/myapp/chatmessage/ HTTP/1.1" 200 107611
+INFO 2025-05-13 19:48:28,400 basehttp 8348 25300 "GET /admin/jsi18n/ HTTP/1.1" 200 9327
+INFO 2025-05-13 19:48:35,051 basehttp 8348 25300 "GET /admin/myapp/chatmessage/?p=2 HTTP/1.1" 200 19201899
+INFO 2025-05-13 19:48:35,108 basehttp 8348 7192 "GET /admin/jsi18n/ HTTP/1.1" 200 9327
+INFO 2025-05-13 19:48:40,306 basehttp 8348 25300 "GET /admin/myapp/chatmessage/?p=1 HTTP/1.1" 200 110237
+INFO 2025-05-13 19:48:40,366 basehttp 8348 25300 "GET /admin/jsi18n/ HTTP/1.1" 200 9327
+INFO 2025-05-13 19:48:48,669 basehttp 8348 25300 "GET /admin/auth/user/3/change/ HTTP/1.1" 200 30888
+INFO 2025-05-13 19:48:48,748 basehttp 8348 7192 "GET /admin/jsi18n/ HTTP/1.1" 200 9327
+INFO 2025-05-13 19:48:49,202 basehttp 8348 8132 "GET /static/admin/js/SelectBox.js HTTP/1.1" 200 4530
+INFO 2025-05-13 19:48:49,212 basehttp 8348 24416 "GET /static/admin/js/admin/DateTimeShortcuts.js HTTP/1.1" 200 19319
+INFO 2025-05-13 19:48:49,231 basehttp 8348 25300 "GET /static/admin/css/forms.css HTTP/1.1" 200 8525
+INFO 2025-05-13 19:48:49,241 basehttp 8348 25300 "GET /static/admin/css/widgets.css HTTP/1.1" 200 11991
+INFO 2025-05-13 19:48:49,244 basehttp 8348 30096 "GET /static/admin/js/calendar.js HTTP/1.1" 200 9141
+INFO 2025-05-13 19:48:49,253 basehttp 8348 25300 "GET /static/admin/js/prepopulate_init.js HTTP/1.1" 200 586
+INFO 2025-05-13 19:48:49,255 basehttp 8348 30096 "GET /static/admin/js/change_form.js HTTP/1.1" 200 606
+INFO 2025-05-13 19:48:49,256 basehttp 8348 13152 "GET /static/admin/js/inlines.js HTTP/1.1" 200 15628
+INFO 2025-05-13 19:48:49,258 basehttp 8348 7192 "GET /static/admin/js/SelectFilter2.js HTTP/1.1" 200 15709
+INFO 2025-05-13 19:48:49,281 basehttp 8348 13152 "GET /static/admin/img/icon-addlink.svg HTTP/1.1" 200 331
+INFO 2025-05-13 19:48:49,400 basehttp 8348 30096 "GET /static/admin/img/icon-clock.svg HTTP/1.1" 200 677
+INFO 2025-05-13 19:48:49,400 basehttp 8348 13152 "GET /static/admin/img/search.svg HTTP/1.1" 200 458
+INFO 2025-05-13 19:48:49,400 basehttp 8348 25300 "GET /static/admin/img/icon-calendar.svg HTTP/1.1" 200 1086
+INFO 2025-05-13 19:48:49,400 basehttp 8348 7192 "GET /static/admin/img/selector-icons.svg HTTP/1.1" 200 3291
+INFO 2025-05-13 19:52:42,908 autoreload 8348 24476 C:\Users\32154\Desktop\Chatbox\Chatbox\Chatbox5.0\backend\dj_chat\myapp\views.py changed, reloading.
+INFO 2025-05-13 19:52:43,867 autoreload 25576 27996 Watching for file changes with StatReloader
+WARNING 2025-05-13 19:52:48,356 basehttp 25576 5568 "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 3628
+INFO 2025-05-13 19:52:48,883 basehttp 25576 5568 "GET /frontend/html/index.html HTTP/1.1" 200 9320
+WARNING 2025-05-13 19:52:48,967 basehttp 25576 5568 "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 3628
+INFO 2025-05-13 19:52:48,974 basehttp 25576 2548 "GET /static/images/default-avatar.png HTTP/1.1" 200 426813
+INFO 2025-05-13 19:52:48,975 basehttp 25576 31412 "GET /frontend/css/styles.css HTTP/1.1" 200 19411
+INFO 2025-05-13 19:52:49,170 basehttp 25576 3228 "POST /api/send_message/ HTTP/1.1" 200 163
+INFO 2025-05-13 19:52:50,046 basehttp 25576 31412 "GET /wasm/wasm-crypto/pkg/wasm_crypto.js HTTP/1.1" 200 12657
+INFO 2025-05-13 19:52:50,075 basehttp 25576 31412 "GET /wasm/wasm-crypto/pkg/wasm_crypto_bg.wasm HTTP/1.1" 200 74620
+INFO 2025-05-13 19:52:50,420 basehttp 25576 31412 "GET /frontend/js/chat.js HTTP/1.1" 200 45416
+INFO 2025-05-13 19:52:50,498 basehttp 25576 31412 "GET /api/current_user/ HTTP/1.1" 200 1572153
+INFO 2025-05-13 19:52:50,504 basehttp 25576 2548 "GET /api/current_user/ HTTP/1.1" 200 1572153
+INFO 2025-05-13 19:52:50,591 basehttp 25576 31412 "GET /api/settings/ HTTP/1.1" 200 1572116
+INFO 2025-05-13 19:52:50,598 basehttp 25576 2548 "GET /api/settings/ HTTP/1.1" 200 1572116
+INFO 2025-05-13 19:52:50,647 basehttp 25576 2548 "GET /api/user_profile/root/ HTTP/1.1" 200 1572027
+INFO 2025-05-13 19:52:50,653 basehttp 25576 31412 "GET /api/user_profile/root/ HTTP/1.1" 200 1572027
+INFO 2025-05-13 19:52:50,944 basehttp 25576 16516 "POST /api/send_message/ HTTP/1.1" 200 164
+INFO 2025-05-13 19:52:51,231 basehttp 25576 30328 "POST /api/send_message/ HTTP/1.1" 200 164
+WARNING 2025-05-13 19:53:17,068 basehttp 25576 31412 "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 3628
+INFO 2025-05-13 19:53:17,356 basehttp 25576 31412 "GET /frontend/html/index.html HTTP/1.1" 200 9320
+WARNING 2025-05-13 19:53:17,447 basehttp 25576 31412 "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 3628
+INFO 2025-05-13 19:53:17,449 basehttp 25576 5568 "GET /static/images/default-avatar.png HTTP/1.1" 200 426813
+INFO 2025-05-13 19:53:17,455 basehttp 25576 2548 "GET /frontend/css/styles.css HTTP/1.1" 200 19411
+INFO 2025-05-13 19:53:17,653 basehttp 25576 30260 "POST /api/send_message/ HTTP/1.1" 200 164
+INFO 2025-05-13 19:53:17,801 basehttp 25576 2548 "GET /wasm/wasm-crypto/pkg/wasm_crypto.js HTTP/1.1" 200 12657
+INFO 2025-05-13 19:53:17,833 basehttp 25576 2548 "GET /wasm/wasm-crypto/pkg/wasm_crypto_bg.wasm HTTP/1.1" 200 74620
+INFO 2025-05-13 19:53:18,103 basehttp 25576 2548 "GET /frontend/js/chat.js HTTP/1.1" 200 45416
+INFO 2025-05-13 19:53:18,194 basehttp 25576 2548 "GET /api/current_user/ HTTP/1.1" 200 1572153
+INFO 2025-05-13 19:53:18,199 basehttp 25576 5568 "GET /api/current_user/ HTTP/1.1" 200 1572153
+INFO 2025-05-13 19:53:18,256 basehttp 25576 5568 "GET /api/settings/ HTTP/1.1" 200 1572116
+INFO 2025-05-13 19:53:18,280 basehttp 25576 2548 "GET /api/settings/ HTTP/1.1" 200 1572116
+INFO 2025-05-13 19:53:18,333 basehttp 25576 5568 "GET /api/user_profile/root/ HTTP/1.1" 200 1572027
+INFO 2025-05-13 19:53:18,342 basehttp 25576 2548 "GET /api/user_profile/root/ HTTP/1.1" 200 1572027
+INFO 2025-05-13 19:53:18,642 basehttp 25576 12268 "POST /api/send_message/ HTTP/1.1" 200 164
+INFO 2025-05-13 19:53:18,924 basehttp 25576 3088 "POST /api/send_message/ HTTP/1.1" 200 164
+INFO 2025-05-13 19:56:05,870 basehttp 25576 2548 "GET /frontend/html/index.html HTTP/1.1" 200 9320
+INFO 2025-05-13 19:56:05,965 basehttp 25576 5568 "GET /static/images/default-avatar.png HTTP/1.1" 200 426813
+INFO 2025-05-13 19:56:05,976 basehttp 25576 2548 "GET /frontend/css/styles.css HTTP/1.1" 200 19411
+INFO 2025-05-13 19:56:06,184 basehttp 25576 7460 "POST /api/send_message/ HTTP/1.1" 200 164
+INFO 2025-05-13 19:56:07,090 basehttp 25576 2548 "GET /wasm/wasm-crypto/pkg/wasm_crypto.js HTTP/1.1" 200 12657
+INFO 2025-05-13 19:56:07,126 basehttp 25576 2548 "GET /wasm/wasm-crypto/pkg/wasm_crypto_bg.wasm HTTP/1.1" 200 74620
+INFO 2025-05-13 19:56:07,319 basehttp 25576 2548 "GET /frontend/js/chat.js HTTP/1.1" 200 42052
+INFO 2025-05-13 19:56:07,401 basehttp 25576 2548 "GET /api/current_user/ HTTP/1.1" 200 1572153
+INFO 2025-05-13 19:56:07,454 basehttp 25576 2548 "GET /api/settings/ HTTP/1.1" 200 1572116
+INFO 2025-05-13 19:56:07,501 basehttp 25576 2548 "GET /api/user_profile/root/ HTTP/1.1" 200 1572027
+WARNING 2025-05-13 19:56:07,757 basehttp 25576 2548 "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 3628
+INFO 2025-05-13 19:56:07,801 basehttp 25576 30608 "POST /api/send_message/ HTTP/1.1" 200 164
+INFO 2025-05-13 19:56:17,123 basehttp 25576 3380 "POST /api/send_message/ HTTP/1.1" 200 164
+INFO 2025-05-13 19:56:27,278 basehttp 25576 2548 "POST /api/settings/update_avatar/ HTTP/1.1" 200 1572078
+WARNING 2025-05-13 19:56:31,594 basehttp 25576 2548 "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 3628
+INFO 2025-05-13 19:56:32,733 basehttp 25576 2548 "GET /frontend/html/index.html HTTP/1.1" 200 9320
+WARNING 2025-05-13 19:56:32,820 basehttp 25576 2548 "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 3628
+INFO 2025-05-13 19:56:32,828 basehttp 25576 31412 "GET /static/images/default-avatar.png HTTP/1.1" 200 426813
+INFO 2025-05-13 19:56:32,833 basehttp 25576 5568 "GET /frontend/css/styles.css HTTP/1.1" 200 19411
+INFO 2025-05-13 19:56:33,019 basehttp 25576 30660 "POST /api/send_message/ HTTP/1.1" 200 164
+INFO 2025-05-13 19:56:33,170 basehttp 25576 5568 "GET /wasm/wasm-crypto/pkg/wasm_crypto.js HTTP/1.1" 200 12657
+INFO 2025-05-13 19:56:33,198 basehttp 25576 5568 "GET /wasm/wasm-crypto/pkg/wasm_crypto_bg.wasm HTTP/1.1" 200 74620
+INFO 2025-05-13 19:56:33,489 basehttp 25576 5568 "GET /frontend/js/chat.js HTTP/1.1" 200 42052
+INFO 2025-05-13 19:56:33,583 basehttp 25576 5568 "GET /api/current_user/ HTTP/1.1" 200 1572153
+INFO 2025-05-13 19:56:33,635 basehttp 25576 5568 "GET /api/settings/ HTTP/1.1" 200 1572116
+INFO 2025-05-13 19:56:33,688 basehttp 25576 5568 "GET /api/user_profile/root/ HTTP/1.1" 200 1572027
+INFO 2025-05-13 19:56:33,993 basehttp 25576 18124 "POST /api/send_message/ HTTP/1.1" 200 164
+INFO 2025-05-13 19:57:25,440 basehttp 25576 5568 "GET /admin/auth/user/3/password/ HTTP/1.1" 200 7498
+INFO 2025-05-13 19:57:25,488 basehttp 25576 5568 "GET /static/admin/css/unusable_password_field.css HTTP/1.1" 200 663
+INFO 2025-05-13 19:57:25,514 basehttp 25576 5568 "GET /static/admin/js/unusable_password_field.js HTTP/1.1" 200 1480
+INFO 2025-05-13 19:57:35,133 basehttp 25576 5568 "GET / HTTP/1.1" 302 0
+INFO 2025-05-13 19:57:35,426 basehttp 25576 5568 "GET /frontend/js/chat.js HTTP/1.1" 304 0
+INFO 2025-05-13 19:57:35,557 basehttp 25576 5568 "GET /api/current_user/ HTTP/1.1" 200 1572153
+INFO 2025-05-13 19:57:35,633 basehttp 25576 5568 "GET /api/settings/ HTTP/1.1" 200 1572116
+INFO 2025-05-13 19:57:35,713 basehttp 25576 5568 "GET /api/user_profile/root/ HTTP/1.1" 200 1572027
+INFO 2025-05-13 19:57:36,012 basehttp 25576 30412 "POST /api/send_message/ HTTP/1.1" 200 164
+INFO 2025-05-13 19:57:44,013 basehttp 25576 23664 "POST /api/send_message/ HTTP/1.1" 200 164
+INFO 2025-05-13 20:01:58,495 basehttp 25576 5568 "GET /frontend/html/index.html HTTP/1.1" 200 9320
+WARNING 2025-05-13 20:01:58,566 basehttp 25576 5568 "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 3628
+INFO 2025-05-13 20:01:58,596 basehttp 25576 5568 "GET /frontend/css/styles.css HTTP/1.1" 200 13791
+INFO 2025-05-13 20:01:58,600 basehttp 25576 3880 "GET /static/images/default-avatar.png HTTP/1.1" 200 426813
+INFO 2025-05-13 20:01:58,789 basehttp 25576 30412 "POST /api/send_message/ HTTP/1.1" 200 164
+INFO 2025-05-13 20:01:59,585 basehttp 25576 3880 "GET /wasm/wasm-crypto/pkg/wasm_crypto.js HTTP/1.1" 200 12657
+INFO 2025-05-13 20:01:59,647 basehttp 25576 3880 "GET /wasm/wasm-crypto/pkg/wasm_crypto_bg.wasm HTTP/1.1" 200 74620
+INFO 2025-05-13 20:01:59,820 basehttp 25576 3880 "GET /frontend/js/chat.js HTTP/1.1" 200 42487
+INFO 2025-05-13 20:01:59,918 basehttp 25576 3880 "GET /api/current_user/ HTTP/1.1" 200 1572153
+INFO 2025-05-13 20:01:59,979 basehttp 25576 3880 "GET /api/settings/ HTTP/1.1" 200 1572116
+INFO 2025-05-13 20:02:00,031 basehttp 25576 3880 "GET /api/user_profile/root/ HTTP/1.1" 200 1572027
+INFO 2025-05-13 20:02:00,343 basehttp 25576 22264 "POST /api/send_message/ HTTP/1.1" 200 164
+INFO 2025-05-13 20:02:04,034 basehttp 25576 3880 "GET /frontend/html/index.html HTTP/1.1" 200 9320
+WARNING 2025-05-13 20:02:04,100 basehttp 25576 3880 "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 3628
+INFO 2025-05-13 20:02:04,139 basehttp 25576 5568 "GET /static/images/default-avatar.png HTTP/1.1" 200 426813
+INFO 2025-05-13 20:02:04,141 basehttp 25576 3880 "GET /frontend/css/styles.css HTTP/1.1" 200 13791
+INFO 2025-05-13 20:02:04,325 basehttp 25576 18308 "POST /api/send_message/ HTTP/1.1" 200 163
+INFO 2025-05-13 20:02:04,438 basehttp 25576 3880 "GET /wasm/wasm-crypto/pkg/wasm_crypto.js HTTP/1.1" 200 12657
+INFO 2025-05-13 20:02:04,490 basehttp 25576 3880 "GET /wasm/wasm-crypto/pkg/wasm_crypto_bg.wasm HTTP/1.1" 200 74620
+INFO 2025-05-13 20:02:04,634 basehttp 25576 3880 "GET /frontend/js/chat.js HTTP/1.1" 200 42487
+INFO 2025-05-13 20:02:04,718 basehttp 25576 3880 "GET /api/current_user/ HTTP/1.1" 200 1572153
+INFO 2025-05-13 20:02:04,780 basehttp 25576 3880 "GET /api/settings/ HTTP/1.1" 200 1572116
+INFO 2025-05-13 20:02:04,842 basehttp 25576 3880 "GET /api/user_profile/root/ HTTP/1.1" 200 1572027
+INFO 2025-05-13 20:02:05,140 basehttp 25576 28848 "POST /api/send_message/ HTTP/1.1" 200 164
+INFO 2025-05-13 20:02:05,557 basehttp 25576 3880 "GET /frontend/html/index.html HTTP/1.1" 200 9320
+WARNING 2025-05-13 20:02:05,609 basehttp 25576 3880 "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 3628
+INFO 2025-05-13 20:02:05,650 basehttp 25576 5568 "GET /static/images/default-avatar.png HTTP/1.1" 200 426813
+INFO 2025-05-13 20:02:05,652 basehttp 25576 3880 "GET /frontend/css/styles.css HTTP/1.1" 200 13791
+INFO 2025-05-13 20:02:05,846 basehttp 25576 1044 "POST /api/send_message/ HTTP/1.1" 200 164
+INFO 2025-05-13 20:02:05,896 basehttp 25576 3880 "GET /wasm/wasm-crypto/pkg/wasm_crypto.js HTTP/1.1" 200 12657
+INFO 2025-05-13 20:02:05,942 basehttp 25576 3880 "GET /wasm/wasm-crypto/pkg/wasm_crypto_bg.wasm HTTP/1.1" 200 74620
+INFO 2025-05-13 20:02:06,095 basehttp 25576 3880 "GET /frontend/js/chat.js HTTP/1.1" 200 42487
+INFO 2025-05-13 20:02:06,158 basehttp 25576 3880 "GET /api/current_user/ HTTP/1.1" 200 1572153
+INFO 2025-05-13 20:02:06,220 basehttp 25576 3880 "GET /api/settings/ HTTP/1.1" 200 1572116
+INFO 2025-05-13 20:02:06,291 basehttp 25576 3880 "GET /api/user_profile/root/ HTTP/1.1" 200 1572027
+INFO 2025-05-13 20:02:06,596 basehttp 25576 28088 "POST /api/send_message/ HTTP/1.1" 200 164

@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger('myapp')
+
 from django.shortcuts import render
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
@@ -25,6 +28,7 @@ def generate_secret_key(request):
         # 生成一个32位的随机密钥
         key = secrets.token_urlsafe(32)
         SECRET_KEY_STORAGE['key'] = key
+        logger.debug(f"生成新的密钥")
         return JsonResponse({'success': True, 'secret_key': key})
     return JsonResponse({'success': False, 'msg': '仅支持POST'})
 
@@ -35,33 +39,46 @@ def register(request):
         username = data.get('username')
         password = data.get('password')
         secret_key = data.get('secret_key')
+        
+        logger.debug(f"收到注册请求: username={username}")
+        
         if not username or not password or not secret_key:
+            logger.warning(f"注册失败: 缺少必要参数")
             return JsonResponse({'success': False, 'msg': '用户名、密码和密钥不能为空'})
+            
         if SECRET_KEY_STORAGE['key'] is None:
+            logger.error("注册失败: 系统密钥未生成")
             return JsonResponse({'success': False, 'msg': '密钥未生成，请联系管理员'})
+            
         if secret_key != SECRET_KEY_STORAGE['key']:
+            logger.warning(f"注册失败: 密钥错误 username={username}")
             return JsonResponse({'success': False, 'msg': '密钥错误'})
+            
         if User.objects.filter(username=username).exists():
+            logger.warning(f"注册失败: 用户名已存在 username={username}")
             return JsonResponse({'success': False, 'msg': '用户名已存在'})
-        user = User.objects.create_user(username=username, password=password)
-        # 创建用户资料
-        profile = UserProfile.objects.create(user=user)
-        # 创建用户设置
-        settings = UserSettings.objects.create(user=user)
-        
-        # 合并设置和资料信息
-        user_settings = settings.to_dict()
-        profile_data = profile.to_dict(request)
-        user_settings.update(profile_data)
-        
-        return JsonResponse({
-            'success': True,
-            'msg': '注册成功',
-            'data': {
-                'username': user.username,
-                'settings': user_settings
-            }
-        })
+            
+        try:
+            user = User.objects.create_user(username=username, password=password)
+            profile = UserProfile.objects.create(user=user)
+            settings = UserSettings.objects.create(user=user)
+            user_settings = settings.to_dict()
+            profile_data = profile.to_dict(request)
+            user_settings.update(profile_data)
+            
+            logger.debug(f"用户注册成功: username={username}")
+            return JsonResponse({
+                'success': True,
+                'msg': '注册成功',
+                'data': {
+                    'username': user.username,
+                    'settings': user_settings
+                }
+            })
+        except Exception as e:
+            logger.error(f"用户注册异常: username={username}, error={str(e)}")
+            return JsonResponse({'success': False, 'msg': f'注册失败: {str(e)}'})
+            
     return JsonResponse({'success': False, 'msg': '仅支持POST'})
 
 @csrf_exempt
@@ -70,19 +87,20 @@ def login(request):
         data = json.loads(request.body.decode())
         username = data.get('username')
         password = data.get('password')
+        
+        logger.info(f"收到登录请求: username={username}")
+        
         user = authenticate(request, username=username, password=password)
         if user is not None:
             auth_login(request, user)
-            # 确保用户有设置记录
             settings, _ = UserSettings.objects.get_or_create(user=user)
-            # 确保用户有资料记录
             profile, _ = UserProfile.objects.get_or_create(user=user)
             
-            # 合并设置和资料信息
             user_settings = settings.to_dict()
             profile_data = profile.to_dict(request)
             user_settings.update(profile_data)
             
+            logger.debug(f"用户登录成功: username={username}")
             return JsonResponse({
                 'success': True,
                 'msg': '登录成功',
@@ -92,19 +110,25 @@ def login(request):
                 }
             })
         else:
+            logger.warning(f"登录失败: 用户名或密码错误 username={username}")
             return JsonResponse({'success': False, 'msg': '用户名或密码错误'})
     return JsonResponse({'success': False, 'msg': '仅支持POST'})
 
 @csrf_exempt
 def current_user(request):
     if request.user.is_authenticated:
-        return JsonResponse({'success': True, 'username': request.user.username})
+        return JsonResponse({'success': True, 'username': request.user.username,'settings': request.user.settings.to_dict(),'profile': request.user.profile.to_dict(request)})
     else:
         return JsonResponse({'success': False, 'msg': '未登录'})
 
 @csrf_exempt
 def logout(request):
-    auth_logout(request)
+    if request.user.is_authenticated:
+        username = request.user.username
+        auth_logout(request)
+        logger.debug(f"用户登出成功: username={username}")
+        return JsonResponse({'success': True, 'msg': '已登出'})
+    logger.debug("未登录用户尝试登出")
     return JsonResponse({'success': True, 'msg': '已登出'})
 
 @csrf_exempt
@@ -115,11 +139,10 @@ def send_message(request):
     POST /api/send_message/
     """
     try:
-        # 打印请求信息以便调试
-        print(f"Received request: Content-Type: {request.content_type}")
-        # print(f"Request body: {request.body.decode()}")
+        logger.debug(f"收到发送消息请求: Content-Type={request.content_type}")
         
         if request.content_type != 'application/json':
+            logger.warning("消息发送失败: Content-Type 不是 application/json")
             return JsonResponse({
                 'success': False,
                 'message': 'Content-Type must be application/json'
@@ -128,6 +151,7 @@ def send_message(request):
         try:
             data = json.loads(request.body)
         except json.JSONDecodeError as e:
+            logger.error(f"消息发送失败: JSON解析错误 error={str(e)}")
             return JsonResponse({
                 'success': False,
                 'message': f'Invalid JSON: {str(e)}'
@@ -136,6 +160,7 @@ def send_message(request):
         required_fields = ['sender_id', 'content']
         missing_fields = [field for field in required_fields if field not in data]
         if missing_fields:
+            logger.warning(f"消息发送失败: 缺少必要字段 missing_fields={missing_fields}")
             return JsonResponse({
                 'success': False,
                 'message': f'Missing required fields: {", ".join(missing_fields)}'
@@ -148,6 +173,7 @@ def send_message(request):
             message_type=data.get('message_type', 'user')
         )
         
+        logger.debug(f"消息发送成功: sender_id={data['sender_id']}, message_id={message.message_id}")
         return JsonResponse({
             'success': True,
             'message': '消息发送成功',
@@ -157,7 +183,7 @@ def send_message(request):
             }
         })
     except Exception as e:
-        print(f"Error in send_message view: {str(e)}")  # 添加服务器端错误日志
+        logger.error(f"消息发送异常: error={str(e)}")
         return JsonResponse({
             'success': False,
             'message': f'消息发送失败: {str(e)}'
@@ -169,24 +195,18 @@ def get_messages(request):
     """
     获取历史消息的接口
     GET /api/get_messages/?before=timestamp&limit=20
-    参数:
-    - before: 获取此时间戳之前的消息（Unix时间戳，秒）
-    - limit: 最多获取多少条消息（默认20条）
     """
     try:
-        # 获取参数
         before_timestamp = float(request.GET.get('before', time.time()))
         limit = int(request.GET.get('limit', 20))
         
-        # 转换时间戳为datetime对象
+        logger.debug(f"获取历史消息: before={before_timestamp}, limit={limit}")
+        
         before_time = datetime.fromtimestamp(before_timestamp)
-        
-        # 查询消息
         messages = ChatMessage.objects.filter(
-            created_at__lt=before_time  # 获取指定时间之前的消息
-        ).order_by('-created_at')[:limit]  # 按时间倒序排序，并限制数量
+            created_at__lt=before_time
+        ).order_by('-created_at')[:limit]
         
-        # 转换为列表并反转，使最早的消息在前
         message_list = [{
             'message_id': msg.message_id,
             'sender_id': msg.sender_id,
@@ -195,15 +215,17 @@ def get_messages(request):
             'timestamp': msg.created_at.timestamp()
         } for msg in reversed(messages)]
         
+        logger.debug(f"成功获取历史消息: count={len(message_list)}")
         return JsonResponse({
             'success': True,
             'data': message_list
         })
     except Exception as e:
+        logger.error(f"获取历史消息失败: error={str(e)}")
         return JsonResponse({
             'success': False,
             'message': f'获取消息失败: {str(e)}'
-        }, status=400)
+        }, status=500)
 
 @csrf_exempt
 @login_required
@@ -212,19 +234,21 @@ def get_user_settings(request):
     获取用户设置
     GET /api/settings/
     """
-    if request.method != 'GET':
-        return JsonResponse({
-            'success': False,
-            'message': '仅支持GET请求'
-        }, status=405)
-
     try:
-        settings, created = UserSettings.objects.get_or_create(user=request.user)
+        settings, _ = UserSettings.objects.get_or_create(user=request.user)
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+        
+        user_settings = settings.to_dict()
+        profile_data = profile.to_dict(request)
+        user_settings.update(profile_data)
+        
+        logger.debug(f"获取用户设置成功: username={request.user.username}")
         return JsonResponse({
             'success': True,
-            'data': settings.to_dict()
+            'data': user_settings
         })
     except Exception as e:
+        logger.error(f"获取用户设置失败: username={request.user.username}, error={str(e)}")
         return JsonResponse({
             'success': False,
             'message': f'获取设置失败: {str(e)}'
@@ -237,43 +261,31 @@ def update_user_settings(request):
     更新用户设置
     POST /api/settings/update/
     """
-    if request.method != 'POST':
-        return JsonResponse({
-            'success': False,
-            'message': '仅支持POST请求'
-        }, status=405)
-
-    try:
-        data = json.loads(request.body)
-        settings, created = UserSettings.objects.get_or_create(user=request.user)
-        
-        # 更新设置
-        if 'dark_mode' in data:
-            settings.dark_mode = data['dark_mode']
-        if 'sound_enabled' in data:
-            settings.sound_enabled = data['sound_enabled']
-        if 'show_timestamps' in data:
-            settings.show_timestamps = data['show_timestamps']
-        if 'auto_scroll' in data:
-            settings.auto_scroll = data['auto_scroll']
-        
-        settings.save()
-        
-        return JsonResponse({
-            'success': True,
-            'message': '设置更新成功',
-            'data': settings.to_dict()
-        })
-    except json.JSONDecodeError:
-        return JsonResponse({
-            'success': False,
-            'message': '无效的JSON数据'
-        }, status=400)
-    except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'message': f'更新设置失败: {str(e)}'
-        }, status=500)
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            settings, _ = UserSettings.objects.get_or_create(user=request.user)
+            
+            # 更新设置
+            for field in ['dark_mode', 'sound_enabled', 'show_timestamps', 'auto_scroll']:
+                if field in data:
+                    setattr(settings, field, data[field])
+            
+            settings.save()
+            logger.debug(f"更新用户设置成功: username={request.user.username}")
+            
+            return JsonResponse({
+                'success': True,
+                'message': '设置已更新',
+                'data': settings.to_dict()
+            })
+        except Exception as e:
+            logger.error(f"更新用户设置失败: username={request.user.username}, error={str(e)}")
+            return JsonResponse({
+                'success': False,
+                'message': f'更新设置失败: {str(e)}'
+            }, status=500)
+    return JsonResponse({'success': False, 'message': '仅支持POST请求'})
 
 @csrf_exempt
 @login_required
@@ -287,19 +299,21 @@ def update_avatar(request):
     
     try:
         if 'avatar' not in request.FILES:
+            logger.warning(f"更新头像失败: 未找到头像文件 username={request.user.username}")
             return JsonResponse({'success': False, 'message': '未找到头像文件'})
         
         avatar_file = request.FILES['avatar']
         
         # 验证文件类型
         if not avatar_file.content_type.startswith('image/'):
+            logger.warning(f"更新头像失败: 文件类型错误 username={request.user.username}, content_type={avatar_file.content_type}")
             return JsonResponse({'success': False, 'message': '仅支持图片文件'})
             
         # 验证文件大小（限制为5MB）
         if avatar_file.size > 5 * 1024 * 1024:
+            logger.warning(f"更新头像失败: 文件过大 username={request.user.username}, size={avatar_file.size}")
             return JsonResponse({'success': False, 'message': '图片大小不能超过5MB'})
             
-        # 获取或创建用户资料
         profile, created = UserProfile.objects.get_or_create(user=request.user)
         
         # 读取图片数据
@@ -309,6 +323,8 @@ def update_avatar(request):
         profile.avatar_data = avatar_data
         profile.avatar_type = avatar_file.content_type
         profile.save()
+        
+        logger.debug(f"更新头像成功: username={request.user.username}, size={len(avatar_data)}")
         
         # 使用to_dict方法获取完整的资料信息
         profile_data = profile.to_dict(request)
@@ -320,6 +336,7 @@ def update_avatar(request):
         })
         
     except Exception as e:
+        logger.error(f"更新头像异常: username={request.user.username}, error={str(e)}")
         return JsonResponse({
             'success': False,
             'message': f'更新头像失败: {str(e)}'
@@ -333,21 +350,22 @@ def get_user_profile(request, username):
     """
     try:
         user = User.objects.get(username=username)
-        profile = UserProfile.objects.get(user=user)
-        
-        # 使用更新后的to_dict方法
+        profile, _ = UserProfile.objects.get_or_create(user=user)
         profile_data = profile.to_dict(request)
         
+        logger.debug(f"获取用户资料成功: target_username={username}")
         return JsonResponse({
             'success': True,
             'data': profile_data
         })
-    except (User.DoesNotExist, UserProfile.DoesNotExist):
+    except User.DoesNotExist:
+        logger.warning(f"获取用户资料失败: 用户不存在 username={username}")
         return JsonResponse({
             'success': False,
             'message': '用户不存在'
         }, status=404)
     except Exception as e:
+        logger.error(f"获取用户资料异常: username={username}, error={str(e)}")
         return JsonResponse({
             'success': False,
             'message': f'获取用户资料失败: {str(e)}'

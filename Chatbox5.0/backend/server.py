@@ -11,16 +11,13 @@ import aiohttp  # 添加用于异步HTTP请求的库
 # 使用字典存储所有连接的客户端和其用户名
 # 键为WebSocket连接对象，值为用户名
 CLIENTS = {}
-
 # 修改常量部分
 PING_INTERVAL = 30  # 发送ping的间隔秒数
 PING_TIMEOUT = 60   # 等待pong响应的超时秒数（1分钟）
 LAST_PONG = {}     # 存储最后一次pong时间
 PENDING_MESSAGES = {}  # 新增：存储待确认的消息
-
 # Django API接口地址
 API_BASE_URL = "http://localhost:8000"  # 移除末尾的/api，因为URL路由中已经包含了
-
 async def save_message_to_db(sender_id, content, message_type='user'):
     """保存消息到数据库"""
     async with aiohttp.ClientSession() as session:

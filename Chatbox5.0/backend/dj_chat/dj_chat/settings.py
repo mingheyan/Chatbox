@@ -143,4 +143,80 @@ CORS_ALLOW_CREDENTIALS = True  # 允许携带认证信息
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# 日志配置
+LOGGING = {
+    'version': 1,  # 日志配置版本，目前只有版本1可用
+    'disable_existing_loggers': False,  # 不禁用已存在的日志器
+    
+    # 日志格式化器
+    'formatters': {
+        'verbose': {  # 详细格式
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {  # 简单格式
+            'format': '{levelname} {asctime} {message}',
+            'style': '{',
+        },
+    },
+    
+    # 日志过滤器
+    'filters': {
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
+        },
+    },
+    
+    # 日志处理器
+    'handlers': {
+        'console': {  # 控制台处理器
+            'level': 'INFO',
+            'filters': ['require_debug_true'],
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple'
+        },
+        'file': {  # 文件处理器
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs/django.log'),  # 日志文件位置
+            'maxBytes': 15 * 1024 * 1024,  # 15MB
+            'backupCount': 10,  # 保留10个备份
+            'formatter': 'verbose',
+            'encoding': 'utf-8',
+        },
+        'error_file': {  # 错误日志文件处理器
+            'level': 'ERROR',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs/error.log'),
+            'maxBytes': 15 * 1024 * 1024,  # 15MB
+            'backupCount': 10,
+            'formatter': 'verbose',
+            'encoding': 'utf-8',
+        },
+    },
+    
+    # 日志记录器
+    'loggers': {
+        'django': {  # Django框架相关日志
+            'handlers': ['console', 'file'],
+            'propagate': True,
+            'level': 'INFO',
+        },
+        'django.request': {  # 请求相关日志
+            'handlers': ['error_file'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'myapp': {  # 应用相关日志
+            'handlers': ['console', 'file', 'error_file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+    },
+}
+
+# 确保日志目录存在
+if not os.path.exists(os.path.join(BASE_DIR, 'logs')):
+    os.makedirs(os.path.join(BASE_DIR, 'logs'))
+
 
