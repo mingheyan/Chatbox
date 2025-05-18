@@ -2,6 +2,31 @@
 const protobuf = window.protobuf;
 const pako = window.pako;
 
+// 添加防抖函数
+function debounce(func, wait) {
+    let timeout;
+    return function (...args) {
+        const context = this;
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+            func.apply(context, args);
+        }, wait);
+    };
+}
+
+// 添加节流函数
+function throttle(func, limit) {
+    let inThrottle;
+    return function (...args) {
+        const context = this;
+        if (!inThrottle) {
+            func.apply(context, args);
+            inThrottle = true;
+            setTimeout(() => inThrottle = false, limit);
+        }
+    };
+}
+
 // 全局变量定义
 let username = '';
 let ws = null;
@@ -362,7 +387,7 @@ async function sendMessage() {
     }
 }
 
-// 修改消息显示函数以支持图片
+// 修改消息显示函数以支持新的系统消息样式
 function appendMessage(sender, content, type) {
     const messageDiv = document.createElement('div');
     
@@ -371,18 +396,35 @@ function appendMessage(sender, content, type) {
         messageDiv.className = 'message system time';
         messageDiv.innerHTML = `
             <div class="message-content">
-                <div class="message-text">${new Date().toLocaleTimeString()}</div>
+                ${new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
             </div>
         `;
     } else {
         messageDiv.className = `message ${type}`;
         
         if (type === 'system') {
-            messageDiv.innerHTML = `
-                <div class="message-content">
-                    <div class="message-text">${content}</div>
-                </div>
-            `;
+            // 检查是否是用户加入/离开消息
+            const isUserEvent = content.includes('加入') || content.includes('离开');
+            if (isUserEvent) {
+                messageDiv.classList.add('user-event');
+                const username = content.split(' ')[0];
+                const action = content.includes('加入') ? '加入了聊天室' : '离开了聊天室';
+                const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+                
+                messageDiv.innerHTML = `
+                    <div class="message-content">
+                        <span class="username">${username}</span>
+                        <span>${action}</span>
+                        <span class="event-time">${time}</span>
+                    </div>
+                `;
+            } else {
+                messageDiv.innerHTML = `
+                    <div class="message-content">
+                        <div class="message-text">${content}</div>
+                    </div>
+                `;
+            }
         } else {
             const avatarUrl = window.userAvatars?.[sender] || '/static/images/default-avatar.png';
             messageDiv.innerHTML = `
@@ -559,8 +601,145 @@ function handlePing() {
     sendWebSocketMessage(pong);
 }
 
+// 添加历史消息相关变量
+let isLoadingHistory = false;
+let noMoreHistory = false;
+let lastMessageTimestamp = null;
+
+// 修改消息区域的滚动事件监听，使用节流
+messageArea.addEventListener('scroll', throttle(async () => {
+    const isNearBottom = messageArea.scrollHeight - messageArea.scrollTop - messageArea.clientHeight < 100;
+    if (isNearBottom) {
+        document.body.classList.add('auto-scroll');
+    } else {
+        document.body.classList.remove('auto-scroll');
+    }
+
+    // 检查是否滚动到顶部附近
+    if (messageArea.scrollTop < 50 && !isLoadingHistory && !noMoreHistory) {
+        await loadHistoryMessages();
+    }
+}, 200)); // 200ms的节流时间
+
+// 修改加载历史消息的函数
+async function loadHistoryMessages(timestamp = null) {
+    if (isLoadingHistory || !username) return;
+    
+    try {
+        isLoadingHistory = true;
+        document.getElementById('loadingHistory').style.display = 'flex';
+        
+        // 使用提供的时间戳或最后一条消息的时间戳
+        const beforeTimestamp = timestamp || lastMessageTimestamp || Math.floor(Date.now() / 1000);
+        
+        const response = await fetch(`/api/get_messages/?before=${beforeTimestamp}&limit=20`, {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch history');
+        
+        const data = await response.json();
+        if (!data.success) throw new Error(data.message);
+        
+        if (data.data.length === 0) {
+            noMoreHistory = true;
+            showToast('没有更多历史消息了');
+            return;
+        }
+
+        // 记录当前滚动位置
+        const oldScrollHeight = messageArea.scrollHeight;
+        const oldScrollTop = messageArea.scrollTop;
+        
+        // 添加时间分割线
+        if (data.data.length > 0) {
+            const oldestMessage = data.data[0];
+            const divider = createTimeDivider(oldestMessage.timestamp);
+            messageArea.insertBefore(divider, messageArea.firstChild);
+        }
+        
+        // 插入历史消息
+        data.data.forEach(msg => {
+            const messageElement = createMessageElement({
+                sender: msg.sender_id,
+                content: msg.content,
+                timestamp: msg.timestamp * 1000, // 转换为毫秒
+                type: msg.message_type === 'system' ? MessageType.values.SYSTEM_MESSAGE : MessageType.values.CHAT_MESSAGE
+            });
+            messageArea.insertBefore(messageElement, messageArea.firstChild);
+        });
+        
+        // 更新最后消息时间戳
+        if (data.data.length > 0) {
+            lastMessageTimestamp = data.data[0].timestamp;
+        }
+        
+        // 保持滚动位置
+        const newScrollHeight = messageArea.scrollHeight;
+        messageArea.scrollTop = oldScrollTop + (newScrollHeight - oldScrollHeight);
+
+        // 等待一下以确保DOM更新完成
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+    } catch (error) {
+        console.error('加载历史消息失败:', error);
+        showToast('加载历史消息失败');
+    } finally {
+        // 延迟重置加载状态，确保DOM完全更新
+        setTimeout(() => {
+            isLoadingHistory = false;
+            document.getElementById('loadingHistory').style.display = 'none';
+        }, 500); // 给予足够的时间确保消息已完全加载
+    }
+}
+
+// 修改创建时间分割线的函数
+function createTimeDivider(timestamp) {
+    const date = new Date(timestamp * 1000);
+    const divider = document.createElement('div');
+    divider.className = 'time-divider';
+    divider.innerHTML = `<span>${formatTimestamp(date)}</span>`;
+    
+    // 添加点击事件
+    divider.addEventListener('click', () => {
+        loadHistoryMessages(timestamp);
+    });
+    
+    return divider;
+}
+
+// 修改格式化时间戳的函数
+function formatTimestamp(timestamp) {
+    // 确保我们有一个有效的 Date 对象
+    const date = timestamp instanceof Date ? timestamp : new Date(typeof timestamp === 'number' ? timestamp : Number(timestamp));
+    
+    // 检查是否是有效的日期
+    if (isNaN(date.getTime())) {
+        return '无效时间';
+    }
+
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    const isThisYear = date.getFullYear() === now.getFullYear();
+    
+    if (isToday) {
+        return `今天 ${date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}`;
+    } else if (isThisYear) {
+        return date.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    } else {
+        return date.toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    }
+}
+
+// 修改现有的handleChatMessage函数，在添加新消息时更新最后消息时间戳
 function handleChatMessage(chatMessage) {
     try {
+        // 更新最后消息时间戳
+        const messageTimestamp = chatMessage.timestamp || Date.now() / 1000;
+        if (!lastMessageTimestamp || messageTimestamp > lastMessageTimestamp) {
+            lastMessageTimestamp = messageTimestamp;
+        }
+        
         // 如果不是自己发送的消息，且声音已启用，播放提示音
         if (chatMessage.sender !== username && window.soundEnabled) {
             playMessageSound();
@@ -593,7 +772,7 @@ function handleChatMessage(chatMessage) {
         messageHTML += `
             <div class="message-header">
                 <span class="message-sender">${chatMessage.sender}</span>
-                <span class="timestamp">${new Date(chatMessage.timestamp || Date.now()).toLocaleTimeString()}</span>
+                <span class="timestamp">${formatTimestamp(new Date(chatMessage.timestamp || Date.now()))}</span>
             </div>
         `;
 
@@ -965,6 +1144,27 @@ function handleDuplicateLogin() {
     handleLogout('该账号已在其他设备登录，请重新登录');
 }
 
+// 添加初始化加载历史消息的函数
+async function initializeHistory() {
+    if (!username) return;
+    
+    try {
+        // 第一次加载
+        await loadHistoryMessages();
+        
+        // 如果还有更多消息且没有出错，加载第二次
+        if (!noMoreHistory) {
+            await loadHistoryMessages(lastMessageTimestamp);
+        }
+        
+        // 滚动到底部
+        setTimeout(scrollToBottom, 100);
+    } catch (error) {
+        console.error('初始化历史消息失败:', error);
+        showToast('加载历史消息失败');
+    }
+}
+
 // 修改登录状态检测逻辑，集成UI更新和设置加载
 (async () => {
     try {
@@ -1048,6 +1248,9 @@ function handleDuplicateLogin() {
                 username: username
             });
             sendWebSocketMessage(message);
+
+            // 初始化加载历史消息
+            await initializeHistory();
         } else {
             // 未登录，显示弹窗
             usernameModal.style.display = '';
@@ -1059,6 +1262,125 @@ function handleDuplicateLogin() {
         updateUserUI(false, '');
     }
 })();
+
+// 修改登录成功的处理函数
+async function handleLoginSuccess(data) {
+    // 重置登出状态
+    isLoggedOut = false;
+    
+    username = data.username;
+    document.getElementById('currentUserInfo').textContent = username;
+    document.getElementById('loginBtn').style.display = 'none';
+    document.getElementById('logoutBtn').style.display = 'inline-block';
+    closeUsernameModal();
+    
+    // 加载用户资料（包含头像）
+    try {
+        const profileData = await $.ajax({
+            url: `/api/user_profile/${username}/`,
+            method: 'GET',
+            xhrFields: {
+                withCredentials: true
+            }
+        });
+        
+        if (profileData.success && profileData.data.avatar_url) {
+            if (!window.userAvatars) window.userAvatars = {};
+            window.userAvatars[username] = profileData.data.avatar_url;
+            document.getElementById('currentAvatar').src = profileData.data.avatar_url;
+        }
+    } catch (error) {
+        console.error('加载用户头像失败:', error);
+    }
+    
+    // 更新用户设置
+    if (data.settings) {
+        updateUserSettings(data.settings);
+    }
+    
+    // 连接WebSocket
+    connectWebSocket();
+
+    // 初始化加载历史消息
+    await initializeHistory();
+}
+
+// 在文件开头添加全局头像缓存对象
+window.userAvatars = {};
+
+// 添加显示登录窗口的函数
+function showLoginModal(message = '') {
+    // 重置登录表单
+    usernameInput.value = '';
+    passwordInput.value = '';
+    secretKeyInput.value = '';
+    
+    // 显示登录窗口
+    usernameModal.style.display = '';
+    
+    // 如果有消息，显示错误信息
+    if (message) {
+        showMessage(message, 'error');
+    }
+    
+    // 聚焦用户名输入框
+    setTimeout(() => {
+        usernameInput.focus();
+    }, 100);
+}
+
+// 添加连接错误处理函数
+function handleConnectionError(message) {
+    handleLogout(message);
+} 
+
+
+// 添加图片预览功能
+window.showImagePreview = function(src) {
+    let modal = document.getElementById('imagePreviewModal');
+    if (!modal) {
+        // 如果模态框不存在，创建一个
+        const modalHtml = `
+            <div id="imagePreviewModal" style="
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.8);
+                z-index: 1000;
+                cursor: zoom-out;
+                display: flex;
+                align-items: center;
+                justify-content: center;">
+                <img src="" style="
+                    max-width: 90%;
+                    max-height: 90vh;
+                    object-fit: contain;
+                    border-radius: 4px;
+                    box-shadow: 0 0 20px rgba(0,0,0,0.3);">
+            </div>`;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        modal = document.getElementById('imagePreviewModal');
+        
+        // 添加ESC键关闭功能
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && modal.style.display === 'flex') {
+                modal.style.display = 'none';
+            }
+        });
+    }
+    
+    const previewImage = modal.querySelector('img');
+    previewImage.src = src;
+    modal.style.display = 'flex';
+    
+    // 点击关闭预览
+    modal.onclick = function() {
+        this.style.display = 'none';
+    };
+}; 
 
 // 设置相关的代码
 const settingsBtn = document.getElementById('settingsBtn');
@@ -1250,48 +1572,66 @@ function scrollToBottom() {
     }
 }
 
-// 监听消息区域的滚动事件
-messageArea.addEventListener('scroll', () => {
-    const isNearBottom = messageArea.scrollHeight - messageArea.scrollTop - messageArea.clientHeight < 100;
-    if (isNearBottom) {
-        document.body.classList.add('auto-scroll');
-    } else {
-        document.body.classList.remove('auto-scroll');
+// 声音相关变量
+let audioContext = null;
+
+// 初始化音频上下文
+function initAudioContext() {
+    if (!audioContext) {
+        try {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (e) {
+            console.error('创建音频上下文失败:', e);
+        }
     }
-});
+    return audioContext;
+}
 
 // 声音提醒功能
 function playMessageSound() {
-    if (window.soundEnabled) {  // 使用全局声音设置
-        try {
-            // 创建音频上下文
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            
-            // 创建振荡器和增益节点
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
+    if (!window.soundEnabled) return;  // 如果声音被禁用，直接返回
 
-            // 连接节点
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
+    try {
+        // 获取或创建音频上下文
+        const context = initAudioContext();
+        if (!context) return;
 
-            // 设置声音参数
-            oscillator.type = 'sine';  // 使用正弦波
-            oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // 设置频率为 880Hz (A5音)
-            
-            // 设置音量包络
-            gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-            gainNode.gain.linearRampToValueAtTime(0.2, audioContext.currentTime + 0.01);
-            gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.2);
-
-            // 播放声音
-            oscillator.start();
-            oscillator.stop(audioContext.currentTime + 0.2);
-        } catch (e) {
-            console.error('播放提示音失败:', e);
+        // 如果上下文被挂起，尝试恢复
+        if (context.state === 'suspended') {
+            context.resume();
         }
+        
+        // 创建振荡器和增益节点
+        const oscillator = context.createOscillator();
+        const gainNode = context.createGain();
+
+        // 连接节点
+        oscillator.connect(gainNode);
+        gainNode.connect(context.destination);
+
+        // 设置声音参数
+        oscillator.type = 'sine';  // 使用正弦波
+        oscillator.frequency.setValueAtTime(880, context.currentTime); // 设置频率为 880Hz (A5音)
+        
+        // 设置音量包络
+        gainNode.gain.setValueAtTime(0, context.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.2, context.currentTime + 0.01);
+        gainNode.gain.linearRampToValueAtTime(0, context.currentTime + 0.2);
+
+        // 播放声音
+        oscillator.start();
+        oscillator.stop(context.currentTime + 0.2);
+    } catch (e) {
+        console.error('播放提示音失败:', e);
     }
 }
+
+// 添加用户交互时初始化音频上下文
+document.addEventListener('click', () => {
+    if (!audioContext) {
+        initAudioContext();
+    }
+}, { once: true });
 
 // 初始化加载设置
 document.addEventListener('DOMContentLoaded', () => {
@@ -1313,9 +1653,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // 修改默认头像路径
-const DEFAULT_AVATAR = '/static/images/image.png';
+const DEFAULT_AVATAR = '/static/images/default-avatar.png';
 
-// 修改头像相关的代码
+// 修改消息创建函数
 function createMessageElement(message) {
     const messageDiv = document.createElement('div');
     messageDiv.className = 'message';
@@ -1334,7 +1674,30 @@ function createMessageElement(message) {
         messageDiv.classList.add(isSent ? 'sent' : 'received');
         
         // 获取用户头像URL
-        const avatarUrl = window.userAvatars?.[message.sender] || '/static/images/default-avatar.png';
+        const avatarUrl = window.userAvatars?.[message.sender] || DEFAULT_AVATAR;
+        
+        // 检查是否是图片消息
+        const isImage = typeof message.content === 'string' && 
+            (message.content.startsWith('data:image') || message.content.includes('"type":"image"'));
+        
+        let content;
+        if (isImage) {
+            try {
+                // 尝试解析JSON格式的图片消息
+                if (message.content.includes('"type":"image"')) {
+                    const imageData = JSON.parse(message.content);
+                    content = `<img src="${imageData.data}" class="message-image" alt="图片消息" onclick="showImagePreview(this.src)">`;
+                } else {
+                    // 直接使用base64图片数据
+                    content = `<img src="${message.content}" class="message-image" alt="图片消息" onclick="showImagePreview(this.src)">`;
+                }
+            } catch (e) {
+                console.error('解析图片消息失败:', e);
+                content = '图片消息加载失败';
+            }
+        } else {
+            content = message.content;
+        }
         
         messageDiv.innerHTML = `
             <div class="avatar">
@@ -1345,184 +1708,10 @@ function createMessageElement(message) {
                     <span class="message-sender">${message.sender}</span>
                     <span class="timestamp">${formatTimestamp(message.timestamp)}</span>
                 </div>
-                <div class="message-text">${message.content}</div>
+                <div class="message-text">${content}</div>
             </div>
         `;
     }
     
     return messageDiv;
-}
-
-// 修改头像上传处理代码
-document.getElementById('avatarInput').addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    // 验证文件类型
-    if (!file.type.startsWith('image/')) {
-        showToast('请选择图片文件');
-        return;
-    }
-
-    // 验证文件大小
-    if (file.size > 5 * 1024 * 1024) {
-        showToast('图片大小不能超过5MB');
-        return;
-    }
-
-    const formData = new FormData();
-    formData.append('avatar', file);
-
-    try {
-        const result = await $.ajax({
-            url: '/api/settings/update_avatar/',
-            method: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            xhrFields: {
-                withCredentials: true
-            }
-        });
-
-        if (result.success) {
-            showToast('头像更新成功');
-            // 更新头像预览和全局头像缓存
-            const avatarUrl = result.data.avatar_url;
-            document.getElementById('currentAvatar').src = avatarUrl;
-            if (!window.userAvatars) window.userAvatars = {};
-            window.userAvatars[username] = avatarUrl;
-            // 更新所有消息中的头像
-            updateMessageAvatars(username, avatarUrl);
-        } else {
-            showToast(result.message || '头像更新失败');
-        }
-    } catch (error) {
-        console.error('上传头像失败:', error);
-        showToast('上传头像失败，请重试');
-    }
-});
-
-// 更新消息中的头像
-function updateMessageAvatars(username, avatarUrl) {
-    const messages = document.querySelectorAll(`.message[data-username="${username}"] .avatar`);
-    messages.forEach(avatar => {
-        avatar.src = avatarUrl;
-    });
-}
-
-// 修改登录成功的处理
-async function handleLoginSuccess(data) {
-    // 重置登出状态
-    isLoggedOut = false;
-    
-    username = data.username;
-    document.getElementById('currentUserInfo').textContent = username;
-    document.getElementById('loginBtn').style.display = 'none';
-    document.getElementById('logoutBtn').style.display = 'inline-block';
-    closeUsernameModal();
-    
-    // 加载用户资料（包含头像）
-    try {
-        const profileData = await $.ajax({
-            url: `/api/user_profile/${username}/`,
-            method: 'GET',
-            xhrFields: {
-                withCredentials: true
-            }
-        });
-        
-        if (profileData.success && profileData.data.avatar_url) {
-            if (!window.userAvatars) window.userAvatars = {};
-            window.userAvatars[username] = profileData.data.avatar_url;
-            document.getElementById('currentAvatar').src = profileData.data.avatar_url;
-        }
-    } catch (error) {
-        console.error('加载用户头像失败:', error);
-    }
-    
-    // 更新用户设置
-    if (data.settings) {
-        updateUserSettings(data.settings);
-    }
-    
-    // 连接WebSocket
-    connectWebSocket();
-}
-
-// 在文件开头添加全局头像缓存对象
-window.userAvatars = {};
-
-// 添加显示登录窗口的函数
-function showLoginModal(message = '') {
-    // 重置登录表单
-    usernameInput.value = '';
-    passwordInput.value = '';
-    secretKeyInput.value = '';
-    
-    // 显示登录窗口
-    usernameModal.style.display = '';
-    
-    // 如果有消息，显示错误信息
-    if (message) {
-        showMessage(message, 'error');
-    }
-    
-    // 聚焦用户名输入框
-    setTimeout(() => {
-        usernameInput.focus();
-    }, 100);
-}
-
-// 添加连接错误处理函数
-function handleConnectionError(message) {
-    handleLogout(message);
 } 
-
-
-// 添加图片预览功能
-window.showImagePreview = function(src) {
-    let modal = document.getElementById('imagePreviewModal');
-    if (!modal) {
-        // 如果模态框不存在，创建一个
-        const modalHtml = `
-            <div id="imagePreviewModal" style="
-                display: none;
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.8);
-                z-index: 1000;
-                cursor: zoom-out;
-                display: flex;
-                align-items: center;
-                justify-content: center;">
-                <img src="" style="
-                    max-width: 90%;
-                    max-height: 90vh;
-                    object-fit: contain;
-                    border-radius: 4px;
-                    box-shadow: 0 0 20px rgba(0,0,0,0.3);">
-            </div>`;
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-        modal = document.getElementById('imagePreviewModal');
-        
-        // 添加ESC键关闭功能
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && modal.style.display === 'flex') {
-                modal.style.display = 'none';
-            }
-        });
-    }
-    
-    const previewImage = modal.querySelector('img');
-    previewImage.src = src;
-    modal.style.display = 'flex';
-    
-    // 点击关闭预览
-    modal.onclick = function() {
-        this.style.display = 'none';
-    };
-}; 

@@ -316,49 +316,91 @@ body.dark-mode #messageInput:focus {
     max-width: 100%;
     width: 100%;
     text-align: center;
-    margin: 8px auto;
-    padding: 4px 16px;
+    margin: 16px auto;
+    padding: 0;
     font-size: 0.85em;
     display: flex;
     justify-content: center;
-    opacity: 0.8;
-    transition: opacity 0.2s ease;
-}
-
-.message.system:hover {
-    opacity: 1;
-    transform: none;
+    align-items: center;
 }
 
 .message.system .message-content {
-    background: rgba(51, 65, 85, 0.3);
+    background: rgba(30, 41, 59, 0.4);
     color: #94a3b8;
     text-align: center;
     width: auto;
-    padding: 4px 12px;
-    border-radius: 12px;
+    padding: 6px 12px;
+    border-radius: 6px;
     backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
     font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: none;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.message.system .message-content .system-icon {
+    width: 14px;
+    height: 14px;
+    opacity: 0.7;
+}
+
+.message.system .message-content .message-text {
+    background: transparent;
+    border: none;
+    padding: 0;
 }
 
 /* System time message specific styles */
 .message.system.time {
-    margin: 16px auto;
-    padding: 0;
+    margin: 24px auto;
 }
 
 .message.system.time .message-content {
-    background: rgba(51, 65, 85, 0.2);
-    padding: 3px 10px;
+    background: rgba(30, 41, 59, 0.3);
+    padding: 4px 10px;
     font-size: 0.8em;
     color: #94a3b8;
-    border: none;
-    backdrop-filter: blur(4px);
+    border-radius: 4px;
 }
 
-.message.system.time:hover .message-content {
-    background: rgba(51, 65, 85, 0.3);
+/* User join/leave message styles */
+.message.system.user-event .message-content {
+    background: rgba(30, 41, 59, 0.3);
+    color: #94a3b8;
+    font-size: 0.85em;
+    padding: 4px 10px;
+    border-radius: 4px;
+}
+
+.message.system.user-event .message-content .username {
+    color: #60a5fa;
+    font-weight: 500;
+    margin: 0 2px;
+}
+
+.message.system.user-event .message-content .event-time {
+    color: #64748b;
+    margin-left: 6px;
+    opacity: 0.8;
+}
+
+/* Dark mode adjustments */
+.dark-mode .message.system .message-content {
+    background: rgba(30, 41, 59, 0.3);
+}
+
+.dark-mode .message.system.time .message-content {
+    background: rgba(15, 23, 42, 0.4);
+}
+
+.dark-mode .message.system.user-event .message-content {
+    background: rgba(15, 23, 42, 0.4);
+}
+
+.dark-mode .message.system.user-event .message-content .username {
+    color: #3b82f6;
 }
 
 /* 输入区域样式 */
@@ -1067,5 +1109,89 @@ body.dark-mode #messageInput:focus {
     to {
         transform: scale(1);
         opacity: 1;
+    }
+}
+
+.loading-history {
+    text-align: center;
+    padding: 10px;
+    color: #666;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.loading-history .spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #ddd;
+    border-top-color: #666;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.time-divider {
+    text-align: center;
+    margin: 24px 0;
+    position: relative;
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.time-divider::before,
+.time-divider::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: calc(50% - 60px);
+    height: 1px;
+    background-color: rgba(148, 163, 184, 0.1);
+}
+
+.time-divider::before {
+    left: 0;
+}
+
+.time-divider::after {
+    right: 0;
+}
+
+.time-divider span {
+    background: var(--bg-color, #1e293b);
+    padding: 4px 10px;
+    color: #94a3b8;
+    font-size: 0.8em;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    z-index: 1;
+}
+
+.time-divider:hover span {
+    color: #60a5fa;
+    background: rgba(30, 41, 59, 0.4);
+}
+
+.dark-mode .time-divider::before,
+.dark-mode .time-divider::after {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.dark-mode .time-divider span {
+    background: var(--bg-color, #0f172a);
+    color: #94a3b8;
+}
+
+.dark-mode .time-divider:hover span {
+    color: #3b82f6;
+    background: rgba(15, 23, 42, 0.5);
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
     }
 } 
